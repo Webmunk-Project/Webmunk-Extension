@@ -3,7 +3,7 @@
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 		<link rel="icon" href="images/icon-48.png">
-		<title>Passive Data Kit</title>
+		<title>Webmunk</title>
 		<link rel="stylesheet" href="vendor/css/material-components-web.min.css">
 		<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
 		
@@ -17,11 +17,11 @@
 		<header class="mdc-top-app-bar">
 			<div class="mdc-top-app-bar__row">
 				<section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-start">
-					<span class="mdc-top-app-bar__title" id="extensionTitle">Passive Data Kit</span>
+					<span class="mdc-top-app-bar__title" id="extensionTitle">Webmunk</span>
 				</section>
 				<section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-end" role="toolbar">
 					<a href="#" class="material-icons mdc-top-app-bar__action-item" aria-label="Close" id="actionCloseSettings" style="display: none;">close</a>
-					<a href="#" class="material-icons mdc-top-app-bar__action-item" aria-label="Open Review" id="actionOpenReview" style="display: none;">assignment_turned_in</a>
+					<a href="#" class="material-icons mdc-top-app-bar__action-item" aria-label="Reload Reload Rules" id="actionReloadRules" style="display: none;">refresh</a>
 					<a href="#" class="material-icons mdc-top-app-bar__action-item" aria-label="Open Settings" id="actionOpenSettings" style="display: none;">settings</a>
 				</section>
 			</div>
@@ -31,14 +31,14 @@
 				<div class="mdc-layout-grid">
 					<div class="mdc-layout-grid__inner">
 						<div class="mdc-layout-grid__cell mdc-layout-grid__cell--span-12">
-							<p class="mdc-typography--body1">Please enter your assigned identifier to get started:</p>
+							<p class="mdc-typography--body1">Please enter your e-mail address to get started:</p>
 				
 							<div class="mdc-text-field mdc-text-field--outlined" id="field_identifier" style="width: 100%;">
-								<input type="text" id="identifier" class="mdc-text-field__input">
+								<input type="email" id="identifier" class="mdc-text-field__input">
 								<div class="mdc-notched-outline">
 									<div class="mdc-notched-outline__leading"></div>
 										<div class="mdc-notched-outline__notch">
-										<label for="tf-outlined" class="mdc-floating-label">Identifier</label>
+										<label for="tf-outlined" class="mdc-floating-label">E-Mail Address</label>
 									</div>
 									<div class="mdc-notched-outline__trailing"></div>
 								</div>
@@ -61,32 +61,6 @@
 							<div class="mdc-typography--subtitle2">Identifier</div>
 							<div class="mdc-typography--body1" id="valueIndentifier">Unknown</div>
 						</div>
-						<div class="mdc-layout-grid__cell">
-							<div class="mdc-typography--subtitle2">Last Upload</div>
-							<div class="mdc-typography--body1" id="valueLastUpload">Never</div>
-						</div>
-						<div class="mdc-layout-grid__cell">
-							<div class="mdc-typography--subtitle2">Pending Items</div>
-							<div class="mdc-typography--body1" id="valuePendingItems">Unknown</div>
-						</div>
-						<div class="mdc-layout-grid__cell">
-							<div class="mdc-typography--subtitle2">Uploaded Items</div>
-							<div class="mdc-typography--body1" id="valueTotalUploaded">0</div>
-						</div>
-						<div class="mdc-layout-grid__cell  mdc-layout-grid__cell--span-12">
-							<div class="mdc-typography--subtitle2">Current Status</div>
-							<div role="progressbar" class="mdc-linear-progress">
-								<div class="mdc-linear-progress__buffering-dots"></div>
-								<div class="mdc-linear-progress__buffer"></div>
-								<div class="mdc-linear-progress__bar mdc-linear-progress__primary-bar">
-									<span class="mdc-linear-progress__bar-inner"></span>
-								</div>
-								<div class="mdc-linear-progress__bar mdc-linear-progress__secondary-bar">
-									<span class="mdc-linear-progress__bar-inner"></span>
-								</div>
-							</div>
-							<div class="mdc-typography--caption" id="progressDescription">(Description here)</div>
-						</div>
 						<div class="mdc-layout-grid__cell mdc-layout-grid__cell--span-12">
 							<div style="text-align: right;">
 								<button class="mdc-button mdc-button--raised" id="uploadData">
@@ -98,57 +72,6 @@
 					</div>
 				</div>
     		</div>
-    		<div id="reviewScreen" style="display: none;">
-				<div class="mdc-layout-grid" style="height: 100vh; margin-top: -64px; padding-top: 88px;">
-					<div class="mdc-layout-grid__inner" style="height: 100%">
-						<div class="mdc-layout-grid__cell--span-12-phone mdc-layout-grid__cell--span-12-desktop mdc-layout-grid__cell--span-12-tablet mdc-typography--body2" id="blacklist_message"></div>
-						
-						
-						<div class="mdc-layout-grid__cell--span-4-phone mdc-layout-grid__cell--span-6-desktop mdc-layout-grid__cell--span-4-tablet mdc-typography--body2">
-							<h3 class="mdc-typography--subtitle2" style="margin-top: 0;">Blocked URL Terms</h3>
-							<ul class="mdc-list mdc-list--non-interactive" id="patterns_list" style="border: thin solid #c2c2c2; border-radius: 4px; min-height: 24px; height: 50%; overflow-y: scroll;">
-								<li class="mdc-list-item">
-									<span class="mdc-list-item__text">Loading patterns&#8230;</span>
-								</li>
-							</ul>
-							<div class="mdc-text-field mdc-text-field--outlined mdc-text-field--with-trailing-icon" id="field_blacklist" style="width: 100%; margin-top: 16px;">
-								<input type="text" id="field_blacklist_input" class="mdc-text-field__input">
-								<i class="material-icons mdc-text-field__icon" id="add_blacklist" tabindex="0" role="button">add_circle</i>
-								<div class="mdc-notched-outline">
-									<div class="mdc-notched-outline__leading"></div>
-									<div class="mdc-notched-outline__notch">
-										<label for="field_lacklist_input" class="mdc-floating-label">URL Contains&#8230;</label>
-									</div>
-									<div class="mdc-notched-outline__trailing"></div>
-								</div>
-							</div>
-							<div class="mdc-text-field-helper-line">
-								<div id="pattern-helper-text" class="mdc-text-field-helper-text" aria-hidden="true">Please be as specific as possible. "facebook.com" is better than just "facebook".</div>
-							</div>
-						</div>
-						<div class="mdc-layout-grid__cell--span-4-phone mdc-layout-grid__cell--span-6-desktop mdc-layout-grid__cell--span-4-tablet mdc-typography--body2">
-							<h3 class="mdc-typography--subtitle2" style="margin-top: 0;">Pending Transmissions</h3>
-
-							<ul class="mdc-list mdc-list--two-line mdc-list--non-interactive" id="visits_list" style="border: thin solid #c2c2c2; border-radius: 4px; min-height: 24px; height: 50%; overflow-y: scroll;">
-								<li class="mdc-list-item">
-									<span class="mdc-list-item__text">Please enter your search term below&#8230;</span>
-								</li>
-							</ul>
-							<div class="mdc-text-field mdc-text-field--outlined mdc-text-field--with-trailing-icon" id="field_visits_search" style="width: 100%; margin-top: 16px;">
-								<input type="text" id="field_visits_input" class="mdc-text-field__input">
-								<i class="material-icons mdc-text-field__icon" tabindex="0" role="button" id="search_visits">search</i>
-								<div class="mdc-notched-outline">
-									<div class="mdc-notched-outline__leading"></div>
-									<div class="mdc-notched-outline__notch">
-										<label for="field_lacklist_input" class="mdc-floating-label">Search&#8230;</label>
-									</div>
-									<div class="mdc-notched-outline__trailing"></div>
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
     		<div id="settingsScreen" style="display: none;">
 				<div class="mdc-layout-grid">
 					<div class="mdc-layout-grid__inner">
