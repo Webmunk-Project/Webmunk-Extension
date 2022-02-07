@@ -19,11 +19,11 @@ requirejs.config({
     pdk: '../../js/lib/passive-data-kit',
     bootstrap: '../../vendor/js/bootstrap.bundle',
     moment: '../../vendor/js/moment.min',
-    material: '../../vendor/js/material-components-web.min'
+    material: '../../vendor/js/material-components-web'
   }
 })
 
-requirejs(['material', 'moment', 'jquery'], function (mdc, moment) {
+requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
   requirejs(['app/home', 'app/history', 'app/config'], function (home, history, config) {
     document.documentElement.style.setProperty('--mdc-theme-primary', config.primaryColor)
 
@@ -33,12 +33,18 @@ requirejs(['material', 'moment', 'jquery'], function (mdc, moment) {
     $('#valueUploadUrl').text(config.uploadUrl)
     $('#valueAboutExtension').html(config.aboutExtension)
 
+    mdc.tooltip.MDCTooltip.attachTo(document.querySelector('#actionCloseSettingsTooltip'))
+    mdc.tooltip.MDCTooltip.attachTo(document.querySelector('#actionOpenSettingsTooltip'))
+    mdc.tooltip.MDCTooltip.attachTo(document.querySelector('#actionReloadRulesTooltip'))
+    mdc.tooltip.MDCTooltip.attachTo(document.querySelector('#actionUploadDataTooltip'))
+
     const displayMainUi = function () {
       $('#loginScreen').hide()
       $('#detailsScreen').show()
       $('#settingsScreen').hide()
       $('#actionOpenSettings').show()
       $('#actionReloadRules').show()
+      $('#actionUploadData').show()
       $('#actionCloseSettings').hide()
 
       chrome.storage.local.get({ 'pdk-identifier': '' }, function (result) {
@@ -56,6 +62,10 @@ requirejs(['material', 'moment', 'jquery'], function (mdc, moment) {
           $('#valueLastUpload').text(moment(result[PDK_LAST_UPLOAD]).format('llll'))
         }
       })
+
+      pdk.enqueueDataPoint('webmunk-extension-action', {
+        action: 'show-main-screen'
+      })
     }
 
     const displaySettingsUi = function () {
@@ -64,10 +74,11 @@ requirejs(['material', 'moment', 'jquery'], function (mdc, moment) {
       $('#settingsScreen').show()
       $('#actionOpenSettings').hide()
       $('#actionReloadRules').hide()
+      $('#actionUploadData').hide()
       $('#actionCloseSettings').show()
     }
 
-    const dialog = new mdc.dialog.MDCDialog(document.querySelector('#dialog'))
+    const dialog = mdc.dialog.MDCDialog.attachTo(document.querySelector('#dialog'))
 
     const displayIdentifierUi = function () {
       $('#loginScreen').show()
@@ -76,6 +87,7 @@ requirejs(['material', 'moment', 'jquery'], function (mdc, moment) {
       $('#actionOpenSettings').hide()
       $('#actionCloseSettings').hide()
       $('#actionReloadRules').hide()
+      $('#actionUploadData').hide()
 
       let identifierValidated = false
       let identifier = null
@@ -93,7 +105,7 @@ requirejs(['material', 'moment', 'jquery'], function (mdc, moment) {
           identifierValidated = true
 
           chrome.storage.local.set({
-            'webmunk-config': data
+            'webmunk-config': data.rules
           }, function (result) {
             dialog.open()
           })
@@ -129,18 +141,18 @@ requirejs(['material', 'moment', 'jquery'], function (mdc, moment) {
       }
     })
 
-    // for (const item in mdc) {
-    //   console.log('  ' + item)
-    // }
-
     /* eslint-disable no-unused-vars */
 
-    const appBar = new mdc.topAppBar.MDCTopAppBar(document.querySelector('.mdc-top-app-bar'))
-    const identifierField = new mdc.textField.MDCTextField(document.querySelector('#field_identifier'))
-    const someButton = new mdc.ripple.MDCRipple(document.querySelector('.mdc-button'))
+    const appBar = mdc.topAppBar.MDCTopAppBar.attachTo(document.querySelector('.mdc-top-app-bar'))
+    const identifierField = mdc.textField.MDCTextField.attachTo(document.querySelector('#field_identifier'))
+    mdc.ripple.MDCRipple.attachTo(document.querySelector('.mdc-button'))
 
     $('#actionCloseSettings').click(function (eventObj) {
       eventObj.preventDefault()
+
+      pdk.enqueueDataPoint('webmunk-extension-action', {
+        action: 'close-settings'
+      })
 
       displayMainUi()
 
@@ -150,6 +162,10 @@ requirejs(['material', 'moment', 'jquery'], function (mdc, moment) {
     $('#actionOpenSettings').click(function (eventObj) {
       eventObj.preventDefault()
 
+      pdk.enqueueDataPoint('webmunk-extension-action', {
+        action: 'open-settings'
+      })
+
       displaySettingsUi()
 
       return false
@@ -157,6 +173,10 @@ requirejs(['material', 'moment', 'jquery'], function (mdc, moment) {
 
     $('#actionReloadRules').click(function (eventObj) {
       eventObj.preventDefault()
+
+      pdk.enqueueDataPoint('webmunk-extension-action', {
+        action: 'reload-rules'
+      })
 
       $('#actionReloadRules').text('sync')
 
@@ -168,12 +188,13 @@ requirejs(['material', 'moment', 'jquery'], function (mdc, moment) {
 
           $.get(config.enrollUrl, payload, function (data) {
             if (data.rules !== undefined) {
-              console.log('NEW RULES: ' + JSON.stringify(data.rules, null, 2))
-
               chrome.storage.local.set({
                 'webmunk-config': data.rules
               }, function (result) {
-                console.log('new rules fetched')
+                $('#dialog-title').text('Rules updated')
+                $('#dialog-content').text('Fetched updated rules successfully.')
+
+                dialog.open()
 
                 $('#actionReloadRules').text('refresh')
               })
@@ -184,7 +205,34 @@ requirejs(['material', 'moment', 'jquery'], function (mdc, moment) {
         }
       })
 
-      console.log('RELOAD RULES')
+      return false
+    })
+
+    let uploading = false
+
+    $('#actionUploadData').click(function (eventObj) {
+      eventObj.preventDefault()
+
+      pdk.enqueueDataPoint('webmunk-extension-action', {
+        action: 'upload-data'
+      })
+
+      if (uploading === false) {
+        $('#actionUploadData').text('cloud_sync')
+
+        uploading = true
+
+        pdk.uploadQueuedDataPoints(config.uploadUrl, function () {
+          $('#actionUploadData').text('cloud_upload')
+
+          $('#dialog-title').text('Data uploaded')
+          $('#dialog-content').text('Data uploaded successfully.')
+
+          dialog.open()
+
+          uploading = false
+        })
+      }
 
       return false
     })
@@ -195,46 +243,6 @@ requirejs(['material', 'moment', 'jquery'], function (mdc, moment) {
       history.resetDataCollection(function () {
         displayMainUi()
       })
-
-      return false
-    })
-
-    $('#uploadData').click(function (eventObj) {
-    /*
-      eventObj.preventDefault()
-
-      $('#uploadData').attr('disabled', true)
-
-      history.uploadPendingVisits(function () {
-        const now = new Date()
-
-        chrome.storage.local.set({
-          'pdk-last-upload': now
-        }, function (result) {
-          $('#valueLastUpload').text(moment(now).format('llll'))
-
-          history.progressListener('Uploaded pending visits', true, 1.0)
-
-          history.fetchUploadedTransmissionsCount(function (err, uploadedCount) {
-            if (err) {
-              console.log(err)
-            }
-
-            $('#valueTotalUploaded').text('' + uploadedCount)
-          })
-
-          history.fetchPendingTransmissionsCount(function (err, pendingCount) {
-            if (err) {
-              console.log(err)
-            }
-
-            $('#valuePendingItems').text('' + pendingCount)
-          })
-
-          $('#uploadData').attr('disabled', false)
-        })
-      })
-      */
 
       return false
     })

@@ -1,52 +1,60 @@
-/* global MutationObserver, browser */
+/* global MutationObserver, chrome */
 
-if (window.webmunkListener === undefined) {
-  $.noConflict()
+window.webmunkLoading = false
 
-  let webMunkRules = null
+function updateWebmunkClasses () {
+  if (window.webmunkLoading) {
+    return
+  }
 
-  let loading = false
-  let observer = null
+  if (window.webmunkRules === null) {
+    window.setTimeout(updateWebmunkClasses, 1000)
 
-  const updateWebmunkClasses = function () {
-    if (loading) {
-      return
-    }
+    return
+  }
 
-    if (webMunkRules === null) {
-      window.setTimeout(updateWebmunkClasses, 1000)
+  window.webmunkLoading = true
 
-      return
-    }
+  let hostMatch = false
 
-    loading = true
+  window.webmunkRules.filters.forEach(function (filter) {
+    let filterMatch = true
 
-    let hostMatch = false
-
-    webMunkRules.filters.forEach(function (filter) {
-      let filterMatch = true
-
-      for (const [operation, pattern] of Object.entries(filter)) {
-        if (operation === 'hostSuffix') {
-          if (window.location.hostname.endsWith(pattern) === false) {
-            filterMatch = false
-          }
-        } else {
-          console.log('[Webmunk] Unsupported filter: ' + operation + ' : ' + pattern)
+    for (const [operation, pattern] of Object.entries(filter)) {
+      if (operation === 'hostSuffix') {
+        if (window.location.hostname.endsWith(pattern) === false) {
+          filterMatch = false
         }
+      } else {
+        console.log('[Webmunk] Unsupported filter: ' + operation + ' : ' + pattern)
       }
+    }
 
-      if (filterMatch) {
-        hostMatch = true
-      }
-    })
+    if (filterMatch) {
+      hostMatch = true
+    }
+  })
 
-    if (hostMatch) {
-      webMunkRules.rules.forEach(function (rule) {
-        if (rule.match !== undefined) {
-          const matches = $(document).find(rule.match)
+  if (hostMatch) {
+    window.webmunkRules.rules.forEach(function (rule) {
+      if (rule.match !== undefined) {
+        const matches = $(document).find(rule.match)
 
-          console.log('[Webmunk] matches[' + rule.match + ']: ' + matches.length)
+        console.log('[Webmunk] matches[' + rule.match + ']: ' + matches.length)
+
+        if (matches.length > 0) {
+          chrome.runtime.sendMessage({
+            content: 'record_data_point',
+            generator: 'webmunk-extension-matched-rule',
+            payload: {
+              rule: rule.match,
+              count: matches.length,
+              'url*': window.location.href,
+              'page-title*': document.title
+            }
+          }, function (message) {
+            console.log(message)
+          })
 
           matches.each(function (index, element) {
             if (rule['add-class'] !== undefined) {
@@ -54,18 +62,20 @@ if (window.webmunkListener === undefined) {
             }
           })
         }
-      })
-    } else {
-      console.log('[Webmunk] Disconnecting - no filters matched.')
+      }
+    })
+  } else {
+    console.log('[Webmunk] Disconnecting - no filters matched.')
 
-      observer.disconnect()
-    }
-
-    window.setTimeout(function () {
-      loading = false
-    }, 1000)
+    window.webmunkObserver.disconnect()
   }
 
+  window.setTimeout(function () {
+    window.webmunkLoading = false
+  }, 1000)
+}
+
+if (window.webmunkObserver === undefined) {
   window.webmunkListener = function (mutationsList) {
     for (const mutation of mutationsList) {
       if (mutation.type === 'childList') {
@@ -85,19 +95,13 @@ if (window.webmunkListener === undefined) {
     characterDataOldValue: true
   }
 
-  observer = new MutationObserver(window.webmunkListener)
+  window.webmunkObserver = new MutationObserver(window.webmunkListener)
 
-  observer.observe(document, config)
-
-  function handleResponse (message) {
-    webMunkRules = message
-  }
-
-  function handleError (error) {
-    console.log(`[Webmunk] Error fetching configuration: ${error}`)
-  }
-
-  const sending = browser.runtime.sendMessage({ content: 'fetch_configuration' })
-
-  sending.then(handleResponse, handleError)
+  window.webmunkObserver.observe(document, config)
 }
+
+chrome.runtime.sendMessage({ content: 'fetch_configuration' }, function (message) {
+  window.webmunkRules = message
+
+  updateWebmunkClasses()
+})

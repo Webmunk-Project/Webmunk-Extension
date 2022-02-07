@@ -1,4 +1,4 @@
-/* global chrome, localStorage, browser */
+/* global chrome, localStorage, chrome */
 
 function openWindow () {
   chrome.windows.create({
@@ -9,7 +9,7 @@ function openWindow () {
   })
 }
 
-browser.browserAction.onClicked.addListener(function (tab) {
+chrome.browserAction.onClicked.addListener(function (tab) {
   const optionsUrl = chrome.extension.getURL('index.html')
 
   chrome.tabs.query({}, function (extensionTabs) {
@@ -27,64 +27,58 @@ browser.browserAction.onClicked.addListener(function (tab) {
   })
 })
 
-let rules = null
+let config = null
 
-const loadRules = function () {
+const loadRules = function (tabId) {
   chrome.storage.local.get({ 'webmunk-config': null }, function (result) {
-    const config = result['webmunk-config']
+    config = result['webmunk-config']
 
     if (config !== null && config !== undefined) {
-      rules = config.rules
+      const css = config['additional-css'].join(' ')
 
-      browser.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
-        const css = rules['additional-css'].join(' ')
-
-        const insertingCSS = browser.tabs.insertCSS({ code: css })
-
-        function onExecutedCSS (result) {
-          browser.tabs.executeScript({
-            file: 'vendor/js/jquery.js'
-          }).then(function (result) {
-            // jQuery loaded
-
-            browser.tabs.executeScript({
-              file: 'js/app/content-script.js'
-            }).then(function (result) {
-              // Script loaded
-            }, function (error) {
-              console.log('Script error:')
-              console.log(error)
-            })
-          }, function (error) {
-            console.log('jQuery error:')
-            console.log(error)
+      chrome.tabs.insertCSS(tabId, {
+        code: css,
+        allFrames: true,
+        cssOrigin: 'user'
+      }, function () {
+        chrome.tabs.executeScript(tabId, {
+          file: 'vendor/js/jquery.js'
+        }, function (result) {
+          chrome.tabs.executeScript(tabId, {
+            file: 'js/app/content-script.js'
+          }, function (result) {
+          // Script loaded
           })
-        }
-
-        function onErrorCSS (error) {
-          console.log('CSS error:')
-          console.log(error)
-        }
-
-        insertingCSS.then(onExecutedCSS, onErrorCSS)
+        })
       })
     } else {
-      window.setTimeout(loadRules, 1000)
+      window.setTimeout(function () {
+        loadRules(tabId)
+      }, 1000)
     }
   })
 }
 
-loadRules()
+chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
+  loadRules(tabId)
+})
 
 function handleMessage (request, sender, sendResponse) {
   if (request.content === 'fetch_configuration') {
-    window.setTimeout(500, sendResponse(rules))
+    window.setTimeout(sendResponse(config), 500)
+  } else if (request.content === 'record_data_point') {
+    window.PDK.enqueueDataPoint(request.generator, request.payload)
+
+    sendResponse({
+      message: 'Data point enqueued successfully.',
+      success: true
+    })
   }
 
   return true
 }
 
-browser.runtime.onMessage.addListener(handleMessage)
+chrome.runtime.onMessage.addListener(handleMessage)
 
 function onInstall () {
   if (localStorage.getItem('PDKExtensionInstallTime')) {
@@ -93,7 +87,7 @@ function onInstall () {
 
   const now = new Date().getTime()
 
-  browser.storage.local.set({
+  chrome.storage.local.set({
     PDKExtensionInstallTime: now
   }, function (result) {
     openWindow()
