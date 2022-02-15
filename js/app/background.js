@@ -100,22 +100,11 @@ function onInstall () {
 
 onInstall()
 
-let isUploading = false
+chrome.alarms.create('pdk-upload', { periodInMinutes: 1 })
 
-function backgroundUpload () {
-  if (isUploading) {
-    return
-  }
+chrome.alarms.onAlarm.addListener(function (alarm) {
+  window.PDK.uploadUrl = 'https://webmunk.audacious-software.com/data/add-bundle.json'
 
-  isUploading = true
-
-  window.PDK.uploadQueuedDataPoints('https://webmunk.audacious-software.com/data/add-bundle.json', function () {
-    console.log('[Webmunk] Uploaded PDK bundle.')
-
-    isUploading = false
-
-    window.setTimeout(backgroundUpload, 5 * 60 * 1000)
+  window.PDK.uploadQueuedDataPoints(window.PDK.uploadUrl, function () {
   })
-}
-
-backgroundUpload()
+})

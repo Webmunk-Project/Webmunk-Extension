@@ -34,6 +34,10 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
     $('#valueUploadUrl').text(config.uploadUrl)
     $('#valueAboutExtension').html(config.aboutExtension)
 
+    console.log('PDK')
+    pdk.uploadUrl = config.uploadUrl
+    console.log(pdk)
+
     mdc.tooltip.MDCTooltip.attachTo(document.querySelector('#actionCloseScreenTooltip'))
     mdc.tooltip.MDCTooltip.attachTo(document.querySelector('#actionOpenSettingsTooltip'))
     mdc.tooltip.MDCTooltip.attachTo(document.querySelector('#actionReloadRulesTooltip'))

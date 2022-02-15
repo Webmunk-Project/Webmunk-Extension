@@ -1,6 +1,7 @@
 {
   "browser_specific_settings": {
     "gecko": {
+      "id": "webmunk@audacious-software.com",
       "strict_min_version": "55.0"
     }
   }, 
@@ -16,6 +17,7 @@
   "description": "Performs web experiments for research studies.", 
   "background": {
     "scripts": [
+      "vendor/js/jquery.js",
       "js/lib/passive-data-kit.js",
       "js/app/background.js"
     ]

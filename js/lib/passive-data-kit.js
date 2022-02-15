@@ -61,7 +61,7 @@ const pdkFunction = function () {
       }
 
       request.onerror = function (event) {
-        console.log('Data point enqueuing failed.')
+        console.log('[PDK] Data point enqueuing failed.')
         console.log(event)
       }
     }, function (error) {
@@ -119,7 +119,7 @@ const pdkFunction = function () {
       }
 
       request.onerror = function (event) {
-        console.log('PDK database error')
+        console.log('[PDK] PDK database error')
         console.log(event)
       }
     })
