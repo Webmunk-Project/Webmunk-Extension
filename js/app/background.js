@@ -64,9 +64,6 @@ chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
 })
 
 function handleMessage (request, sender, sendResponse) {
-  console.log('handleMessage')
-  console.log(request)
-
   if (request.content === 'fetch_configuration') {
     window.setTimeout(sendResponse(config), 500)
   } else if (request.content === 'record_data_point') {
@@ -102,3 +99,23 @@ function onInstall () {
 }
 
 onInstall()
+
+let isUploading = false
+
+function backgroundUpload () {
+  if (isUploading) {
+    return
+  }
+
+  isUploading = true
+
+  window.PDK.uploadQueuedDataPoints('https://webmunk.audacious-software.com/data/add-bundle.json', function () {
+    console.log('[Webmunk] Uploaded PDK bundle.')
+
+    isUploading = false
+
+    window.setTimeout(backgroundUpload, 5 * 60 * 1000)
+  })
+}
+
+backgroundUpload()

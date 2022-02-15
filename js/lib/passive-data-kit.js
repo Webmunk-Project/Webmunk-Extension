@@ -57,7 +57,7 @@ const pdkFunction = function () {
         .put(payload)
 
       request.onsuccess = function (event) {
-        console.log('Data point enqueued successfully.')
+        console.log('[PDK] Data point saved successfully.')
       }
 
       request.onerror = function (event) {
@@ -171,7 +171,7 @@ const pdkFunction = function () {
       }
 
       metadata.source = userId
-      metadata.generator = userAgent
+      metadata.generator = points[i].generatorId + ': ' + userAgent
       metadata['generator-id'] = points[i].generatorId
       metadata.timestamp = points[i].date / 1000 // Unix timestamp
 

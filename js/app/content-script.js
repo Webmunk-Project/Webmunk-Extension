@@ -53,7 +53,7 @@ function updateWebmunkClasses () {
               'page-title*': document.title
             }
           }, function (message) {
-            console.log(message)
+
           })
 
           matches.each(function (index, element) {

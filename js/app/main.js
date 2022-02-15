@@ -80,6 +80,10 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
       $('.settings-button').show()
 
       $('#extensionTitle').html('Settings')
+
+      pdk.enqueueDataPoint('webmunk-extension-action', {
+        action: 'show-settings'
+      })
     }
 
     const displayRulesUi = function () {
@@ -90,6 +94,10 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
       $('.inspect-rules-button').show()
 
       $('#extensionTitle').html('Inspect Rules')
+
+      pdk.enqueueDataPoint('webmunk-extension-action', {
+        action: 'show-rules'
+      })
     }
 
     const dialog = mdc.dialog.MDCDialog.attachTo(document.querySelector('#dialog'))
@@ -132,15 +140,19 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
         })
       })
 
-      dialog.listen('MDCDialog:closed', function (event) {
+      const completeFunction = function (event) {
         if (identifierValidated) {
           chrome.storage.local.set({
             'pdk-identifier': identifier
           }, function (result) {
+            dialog.unlisten('MDCDialog:closed', completeFunction)
+
             displayMainUi()
           })
         }
-      })
+      }
+
+      dialog.listen('MDCDialog:closed', completeFunction)
     }
 
     chrome.storage.local.get({ 'pdk-identifier': '' }, function (result) {
@@ -160,9 +172,6 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
     const validateRules = function () {
       try {
         const newRules = JSON.parse(rulesJsonField.value)
-
-        console.log('rules')
-        console.log(newRules)
 
         $('#rulesJsonState').removeClass('rules-error')
         $('#rulesJsonState').addClass('rules-ok')
@@ -231,12 +240,11 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
 
       const verticalPadding = $('#rulesDefinitionJsonFrame').outerHeight() - $('#rulesDefinitionJsonFrame .mdc-layout-grid__inner').outerHeight()
 
-      console.log('status height: ' + statusHeight + ' -- padding: ' + verticalPadding)
-
       $('#rulesDefinitionJson').height(window.innerHeight - verticalPadding - 64 - statusHeight)
       $('#rulesScreenStatus').css('padding', '8px')
       $('#rulesScreenStatus').css('padding-left', (verticalPadding / 2) + 'px')
       $('#rulesScreenStatus').css('padding-right', (verticalPadding / 2) + 'px')
+
       $('body').css('height', '100vh').css('overflow-y', 'hidden')
     }
 
@@ -261,13 +269,22 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
     })
 
     $('#actionCssHelp').click(function () {
+      pdk.enqueueDataPoint('webmunk-extension-action', {
+        action: 'open-css-help'
+      })
+
       chrome.runtime.sendMessage({ content: 'open_css_help' }, function (message) {
       })
     })
 
     $('#actionSaveRules').click(function () {
+      pdk.enqueueDataPoint('webmunk-extension-action', {
+        action: 'save-rules'
+      })
+
       if (validateRules()) {
         const newRules = JSON.parse(rulesJsonField.value)
+
         chrome.storage.local.set({
           'webmunk-config': newRules
         }, function (result) {
