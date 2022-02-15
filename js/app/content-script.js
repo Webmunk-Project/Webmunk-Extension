@@ -60,6 +60,10 @@ function updateWebmunkClasses () {
             if (rule['add-class'] !== undefined) {
               $(this).addClass(rule['add-class'])
             }
+
+            if (rule['remove-class'] !== undefined) {
+              $(this).removeClass(rule['remove-class'])
+            }
           })
         }
       }

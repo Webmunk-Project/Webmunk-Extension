@@ -26,6 +26,7 @@ requirejs.config({
 requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
   requirejs(['app/home', 'app/history', 'app/config'], function (home, history, config) {
     document.documentElement.style.setProperty('--mdc-theme-primary', config.primaryColor)
+    document.documentElement.style.setProperty('--mdc-theme-secondary', config.accentColor)
 
     document.title = config.extensionName
 
@@ -33,19 +34,22 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
     $('#valueUploadUrl').text(config.uploadUrl)
     $('#valueAboutExtension').html(config.aboutExtension)
 
-    mdc.tooltip.MDCTooltip.attachTo(document.querySelector('#actionCloseSettingsTooltip'))
+    mdc.tooltip.MDCTooltip.attachTo(document.querySelector('#actionCloseScreenTooltip'))
     mdc.tooltip.MDCTooltip.attachTo(document.querySelector('#actionOpenSettingsTooltip'))
     mdc.tooltip.MDCTooltip.attachTo(document.querySelector('#actionReloadRulesTooltip'))
     mdc.tooltip.MDCTooltip.attachTo(document.querySelector('#actionUploadDataTooltip'))
+    mdc.tooltip.MDCTooltip.attachTo(document.querySelector('#actionInspectRulesTooltip'))
+    mdc.tooltip.MDCTooltip.attachTo(document.querySelector('#actionCssHelpTooltip'))
+    mdc.tooltip.MDCTooltip.attachTo(document.querySelector('#actionSaveRulesToolTip'))
 
     const displayMainUi = function () {
-      $('#loginScreen').hide()
+      $('.page-panel').hide()
       $('#detailsScreen').show()
-      $('#settingsScreen').hide()
-      $('#actionOpenSettings').show()
-      $('#actionReloadRules').show()
-      $('#actionUploadData').show()
-      $('#actionCloseSettings').hide()
+
+      $('#extensionTitle').html('Webmunk')
+
+      $('.toolbar-button').hide()
+      $('.main-ui-button').show()
 
       chrome.storage.local.get({ 'pdk-identifier': '' }, function (result) {
         if (result[PDK_IDENTIFIER] === '') {
@@ -69,25 +73,34 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
     }
 
     const displaySettingsUi = function () {
-      $('#loginScreen').hide()
-      $('#detailsScreen').hide()
+      $('.page-panel').hide()
       $('#settingsScreen').show()
-      $('#actionOpenSettings').hide()
-      $('#actionReloadRules').hide()
-      $('#actionUploadData').hide()
-      $('#actionCloseSettings').show()
+
+      $('.toolbar-button').hide()
+      $('.settings-button').show()
+
+      $('#extensionTitle').html('Settings')
+    }
+
+    const displayRulesUi = function () {
+      $('.page-panel').hide()
+      $('#rulesScreen').show()
+
+      $('.toolbar-button').hide()
+      $('.inspect-rules-button').show()
+
+      $('#extensionTitle').html('Inspect Rules')
     }
 
     const dialog = mdc.dialog.MDCDialog.attachTo(document.querySelector('#dialog'))
 
     const displayIdentifierUi = function () {
+      $('.page-panel').hide()
       $('#loginScreen').show()
-      $('#detailsScreen').hide()
-      $('#settingsScreen').hide()
-      $('#actionOpenSettings').hide()
-      $('#actionCloseSettings').hide()
-      $('#actionReloadRules').hide()
-      $('#actionUploadData').hide()
+
+      $('.toolbar-button').hide()
+
+      $('#extensionTitle').html('Get Started')
 
       let identifierValidated = false
       let identifier = null
@@ -128,9 +141,6 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
           })
         }
       })
-
-      $('#detailsScreen').hide()
-      $('#loginScreen').show()
     }
 
     chrome.storage.local.get({ 'pdk-identifier': '' }, function (result) {
@@ -145,13 +155,58 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
 
     const appBar = mdc.topAppBar.MDCTopAppBar.attachTo(document.querySelector('.mdc-top-app-bar'))
     const identifierField = mdc.textField.MDCTextField.attachTo(document.querySelector('#field_identifier'))
+    const rulesJsonField = mdc.textField.MDCTextField.attachTo(document.querySelector('#rulesDefinitionJson'))
+
+    const validateRules = function () {
+      try {
+        const newRules = JSON.parse(rulesJsonField.value)
+
+        console.log('rules')
+        console.log(newRules)
+
+        $('#rulesJsonState').removeClass('rules-error')
+        $('#rulesJsonState').addClass('rules-ok')
+        $('#rulesJsonState').html('Valid JSON.')
+
+        if (newRules.rules.length !== undefined) {
+          $('#rulesCount').html(newRules.rules.length + ' rule(s)')
+        } else {
+          $('#rulesCount').html('Unable to count rules.')
+        }
+
+        if (newRules['additional-css'].length !== undefined) {
+          $('#cssCount').html(newRules['additional-css'].length + ' CSS style(s)')
+        } else {
+          $('#cssCount').html('Unable to CSS styles.')
+        }
+
+        if (Object.keys(newRules.actions).length !== undefined) {
+          $('#actionsCount').html(Object.keys(newRules.actions).length + ' action set(s)')
+        } else {
+          $('#actionsCount').html('Unable to count action sets.')
+        }
+
+        return true
+      } catch (error) {
+        $('#rulesJsonState').addClass('rules-error')
+        $('#rulesJsonState').removeClass('rules-ok')
+
+        $('#rulesJsonState').html('Invalid JSON.')
+        $('#rulesCount').html('')
+        $('#cssCount').html('')
+        $('#actionsCount').html('')
+      }
+
+      return false
+    }
+
     mdc.ripple.MDCRipple.attachTo(document.querySelector('.mdc-button'))
 
-    $('#actionCloseSettings').click(function (eventObj) {
+    $('#actionCloseScreen').click(function (eventObj) {
       eventObj.preventDefault()
 
       pdk.enqueueDataPoint('webmunk-extension-action', {
-        action: 'close-settings'
+        action: 'close-screen'
       })
 
       displayMainUi()
@@ -169,6 +224,68 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
       displaySettingsUi()
 
       return false
+    })
+
+    window.onresize = function () {
+      const statusHeight = $('#rulesScreenStatus').outerHeight()
+
+      const verticalPadding = $('#rulesDefinitionJsonFrame').outerHeight() - $('#rulesDefinitionJsonFrame .mdc-layout-grid__inner').outerHeight()
+
+      console.log('status height: ' + statusHeight + ' -- padding: ' + verticalPadding)
+
+      $('#rulesDefinitionJson').height(window.innerHeight - verticalPadding - 64 - statusHeight)
+      $('#rulesScreenStatus').css('padding', '8px')
+      $('#rulesScreenStatus').css('padding-left', (verticalPadding / 2) + 'px')
+      $('#rulesScreenStatus').css('padding-right', (verticalPadding / 2) + 'px')
+      $('body').css('height', '100vh').css('overflow-y', 'hidden')
+    }
+
+    $('#actionInspectRules').click(function (eventObj) {
+      eventObj.preventDefault()
+
+      pdk.enqueueDataPoint('webmunk-extension-action', {
+        action: 'inspect-rules'
+      })
+
+      chrome.runtime.sendMessage({ content: 'fetch_configuration' }, function (message) {
+        rulesJsonField.value = JSON.stringify(message, null, 2)
+
+        validateRules()
+
+        displayRulesUi()
+
+        window.onresize()
+      })
+
+      return false
+    })
+
+    $('#actionCssHelp').click(function () {
+      chrome.runtime.sendMessage({ content: 'open_css_help' }, function (message) {
+      })
+    })
+
+    $('#actionSaveRules').click(function () {
+      if (validateRules()) {
+        const newRules = JSON.parse(rulesJsonField.value)
+        chrome.storage.local.set({
+          'webmunk-config': newRules
+        }, function (result) {
+          $('#dialog-title').text('Rules updated')
+          $('#dialog-content').text('Updated rules were saved successfully.')
+
+          dialog.open()
+        })
+      } else {
+        $('#dialog-title').text('Invalid Rules')
+        $('#dialog-content').text('Updated rules are not valid and were not saved.')
+
+        dialog.open()
+      }
+    })
+
+    $('#rulesDefinitionJson textarea').on('input selectionchange propertychange', function () {
+      validateRules()
     })
 
     $('#actionReloadRules').click(function (eventObj) {

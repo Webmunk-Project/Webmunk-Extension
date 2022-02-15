@@ -2,8 +2,8 @@
 
 function openWindow () {
   chrome.windows.create({
-    height: 360,
-    width: 480,
+    height: 480,
+    width: 640,
     type: 'panel',
     url: chrome.extension.getURL('index.html')
   })
@@ -64,6 +64,9 @@ chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
 })
 
 function handleMessage (request, sender, sendResponse) {
+  console.log('handleMessage')
+  console.log(request)
+
   if (request.content === 'fetch_configuration') {
     window.setTimeout(sendResponse(config), 500)
   } else if (request.content === 'record_data_point') {
@@ -72,6 +75,10 @@ function handleMessage (request, sender, sendResponse) {
     sendResponse({
       message: 'Data point enqueued successfully.',
       success: true
+    })
+  } else if (request.content === 'open_css_help') {
+    chrome.windows.create({
+      url: 'https://api.jquery.com/category/selectors/'
     })
   }
 

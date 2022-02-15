@@ -94,6 +94,7 @@ const pdkFunction = function () {
             pendingItem.transmitted = new Date().getTime()
 
             pendingItem.dataPoint.date = pendingItem.date
+            pendingItem.dataPoint.generatorId = pendingItem.generatorId
 
             toTransmit.push(pendingItem)
             xmitBundle.push(pendingItem.dataPoint)

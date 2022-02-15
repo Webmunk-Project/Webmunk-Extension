@@ -1,8 +1,8 @@
 define([], function () {
   const config = {}
 
-  config.primaryColor = '#6D4C41'
-  config.accentColor = '#800000'
+  config.primaryColor = '#A51C30'
+  config.accentColor = '#A51C30'
   config.extensionName = 'Webmunk'
   config.uploadUrl = 'https://bu-extension.audacious-software.com/data/add-bundle.json'
   config.enrollUrl = 'https://bu-extension.audacious-software.com/enroll/enroll.json'
