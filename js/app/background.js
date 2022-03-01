@@ -94,7 +94,7 @@ function onInstall () {
   chrome.storage.local.set({
     PDKExtensionInstallTime: now
   }, function (result) {
-    openWindow()
+
   })
 }
 

@@ -17,6 +17,7 @@ function updateWebmunkClasses () {
   window.webmunkLoading = true
 
   let hostMatch = false
+  let pathMatch = true
 
   function uuidv4 () {
     return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
@@ -27,11 +28,21 @@ function updateWebmunkClasses () {
   window.webmunkRules.filters.forEach(function (filter) {
     let filterMatch = true
 
+    pathMatch = true
+
     for (const [operation, pattern] of Object.entries(filter)) {
       if (operation === 'hostSuffix') {
         if (window.location.hostname.endsWith(pattern) === false) {
           filterMatch = false
         }
+      } else if (operation === 'excludePaths') {
+        pattern.forEach(function (excludePath) {
+          const pathRegEx = new RegExp(excludePath)
+
+          if (pathRegEx.test(window.location.pathname)) {
+            pathMatch = false
+          }
+        })
       } else {
         console.log('[Webmunk] Unsupported filter: ' + operation + ' : ' + pattern)
       }
@@ -42,7 +53,7 @@ function updateWebmunkClasses () {
     }
   })
 
-  if (hostMatch) {
+  if (hostMatch && pathMatch) {
     window.webmunkRules.rules.forEach(function (rule) {
       if (rule.match !== undefined) {
         const matches = $(document).find(rule.match)
