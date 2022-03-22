@@ -5,12 +5,12 @@ function openWindow () {
     height: 480,
     width: 640,
     type: 'panel',
-    url: chrome.extension.getURL('index.html')
+    url: chrome.runtime.getURL('index.html')
   })
 }
 
 chrome.browserAction.onClicked.addListener(function (tab) {
-  const optionsUrl = chrome.extension.getURL('index.html')
+  const optionsUrl = chrome.runtime.getURL('index.html')
 
   chrome.tabs.query({}, function (extensionTabs) {
     let found = false
@@ -63,7 +63,7 @@ chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
   loadRules(tabId)
 })
 
-function handleMessage (request, sender, sendResponse) {
+function handleMessage(request, sender, sendResponse) {
   if (request.content === 'fetch_configuration') {
     window.setTimeout(sendResponse(config), 500)
   } else if (request.content === 'record_data_point') {

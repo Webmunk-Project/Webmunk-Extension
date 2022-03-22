@@ -159,6 +159,9 @@ const pdkFunction = function () {
   }
 
   pdk.uploadBundle = function (endpoint, userId, points, complete) {
+    console.log("CALLING nacl_factory.instantiate")
+    console.log(nacl_factory == undefined)
+
     const manifest = chrome.runtime.getManifest()
 
     const userAgent = manifest.name + '/' + manifest.version + ' ' + navigator.userAgent
@@ -178,18 +181,25 @@ const pdkFunction = function () {
       points[i]['passive-data-metadata'] = metadata
     }
 
-    const dataString = JSON.stringify(points, null, 2)
 
-    $.ajax({
-      type: 'CREATE',
-      url: endpoint,
-      dataType: 'json',
-      contentType: 'application/json',
-      data: dataString,
-      success: function (data, textStatus, jqXHR) {
-        complete()
-      }
-    })
+	  nacl_factory.instantiate(function (nacl) {
+		console.log('in nacl_factory')
+
+		console.log(nacl.to_hex(nacl.random_bytes(16)));
+
+		const dataString = JSON.stringify(points, null, 2)
+
+		$.ajax({
+		  type: 'CREATE',
+		  url: endpoint,
+		  dataType: 'json',
+		  contentType: 'application/json',
+		  data: dataString,
+		  success: function (data, textStatus, jqXHR) {
+			complete()
+		  }
+		})
+	  });
   }
 
   return pdk

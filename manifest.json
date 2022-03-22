@@ -1,7 +1,7 @@
 {
   "browser_specific_settings": {
     "gecko": {
-      "id": "webmunk@audacious-software.com",
+      "id": "webmunk.team@gmail.com",
       "strict_min_version": "55.0"
     }
   }, 
@@ -17,14 +17,14 @@
   "description": "Performs web experiments for research studies.", 
   "background": {
     "scripts": [
+      "vendor/js/nacl_factory.js",
       "vendor/js/jquery.js",
       "js/lib/passive-data-kit.js",
       "js/app/background.js"
     ]
   }, 
-  "version": "0.1", 
+  "version": "0.3", 
   "manifest_version": 2, 
-  "content_security_policy": "script-src 'self' https://unpkg.com; object-src 'self'; ", 
   "browser_action": {
     "default_icon": {
       "256": "images/icon-256.png", 
@@ -35,11 +35,9 @@
 	}    
   }, 
   "permissions": [
-    "history", 
     "storage", 
     "alarms",
     "<all_urls>",
-	"activeTab",
     "tabs"
   ]
 }
