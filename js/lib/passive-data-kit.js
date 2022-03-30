@@ -1,4 +1,4 @@
-/* global chrome */
+/* global chrome, indexedDB, fetch */
 
 const pdkFunction = function () {
   const pdk = {}
@@ -12,7 +12,7 @@ const pdkFunction = function () {
 
     const PDK_DATABASE_VERSION = 1
 
-    const request = window.indexedDB.open('passive_data_kit', PDK_DATABASE_VERSION)
+    const request = indexedDB.open('passive_data_kit', PDK_DATABASE_VERSION)
 
     request.onerror = function (event) {
       failure(event)
@@ -43,7 +43,7 @@ const pdkFunction = function () {
     }
   }
 
-  pdk.enqueueDataPoint = function (generatorId, dataPoint) {
+  pdk.enqueueDataPoint = function (generatorId, dataPoint, complete) {
     pdk.openDatabase(function (db) {
       const payload = {
         generatorId: generatorId,
@@ -58,11 +58,15 @@ const pdkFunction = function () {
 
       request.onsuccess = function (event) {
         console.log('[PDK] Data point saved successfully.')
+
+        complete()
       }
 
       request.onerror = function (event) {
         console.log('[PDK] Data point enqueuing failed.')
         console.log(event)
+
+        complete()
       }
     }, function (error) {
       if (error) {
@@ -71,7 +75,15 @@ const pdkFunction = function () {
     })
   }
 
+  pdk.currentlyUploading = false
+
   pdk.uploadQueuedDataPoints = function (endpoint, callback) {
+    if (pdk.currentlyUploading) {
+      return
+    }
+
+    pdk.currentlyUploading = true
+
     pdk.openDatabase(function (db) {
       const index = db.transaction(['dataPoints'], 'readonly')
         .objectStore('dataPoints')
@@ -84,6 +96,8 @@ const pdkFunction = function () {
 
         if (pendingItems.length === 0) {
           callback() // Finished
+
+          pdk.currentlyUploading = false
         } else {
           const toTransmit = []
           const xmitBundle = []
@@ -102,14 +116,16 @@ const pdkFunction = function () {
 
           if (toTransmit.length === 0) {
             callback()
+
+            pdk.currentlyUploading = false
           } else {
             chrome.storage.local.get({ 'pdk-identifier': '' }, function (result) {
               if (result['pdk-identifier'] !== '') {
                 pdk.uploadBundle(endpoint, result['pdk-identifier'], xmitBundle, function () {
                   pdk.updateDataPoints(toTransmit, function () {
-                    window.setTimeout(function () {
-                      pdk.uploadQueuedDataPoints(endpoint, callback)
-                    }, 0)
+                    pdk.currentlyUploading = false
+
+                    pdk.uploadQueuedDataPoints(endpoint, callback)
                   })
                 })
               }
@@ -137,18 +153,14 @@ const pdkFunction = function () {
           .put(dataPoint)
 
         request.onsuccess = function (event) {
-          window.setTimeout(function () {
-            pdk.updateDataPoints(dataPoints, complete)
-          }, 0)
+          pdk.updateDataPoints(dataPoints, complete)
         }
 
         request.onerror = function (event) {
           console.log('The data has write has failed')
           console.log(event)
 
-          window.setTimeout(function () {
-            pdk.updateDataPoints(dataPoints, complete)
-          }, 0)
+          pdk.updateDataPoints(dataPoints, complete)
         }
       }, function (error) {
         console.log(error)
@@ -159,8 +171,8 @@ const pdkFunction = function () {
   }
 
   pdk.uploadBundle = function (endpoint, userId, points, complete) {
-    console.log("CALLING nacl_factory.instantiate")
-    console.log(nacl_factory == undefined)
+    //    console.log("CALLING nacl_factory.instantiate")
+    //    console.log(nacl_factory == undefined)
 
     const manifest = chrome.runtime.getManifest()
 
@@ -181,32 +193,58 @@ const pdkFunction = function () {
       points[i]['passive-data-metadata'] = metadata
     }
 
+    /*
+        $.ajax({
+          type: 'CREATE',
+          url: endpoint,
+          dataType: 'json',
+          contentType: 'application/json',
+          data: dataString,
+          success: function (data, textStatus, jqXHR) {
+            complete()
+          }
+        })
+*/
+    const dataString = JSON.stringify(points, null, 2)
 
-	  nacl_factory.instantiate(function (nacl) {
-		console.log('in nacl_factory')
-
-		console.log(nacl.to_hex(nacl.random_bytes(16)));
-
-		const dataString = JSON.stringify(points, null, 2)
-
-		$.ajax({
-		  type: 'CREATE',
-		  url: endpoint,
-		  dataType: 'json',
-		  contentType: 'application/json',
-		  data: dataString,
-		  success: function (data, textStatus, jqXHR) {
-			complete()
-		  }
-		})
-	  });
+    fetch(endpoint, {
+      method: 'CREATE',
+      mode: 'cors', // no-cors, *cors, same-origin
+      cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      redirect: 'follow', // manual, *follow, error
+      referrerPolicy: 'no-referrer', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+      body: dataString // body data type must match "Content-Type" header
+    })
+      .then(response => response.json())
+      .then(function (data) {
+        complete()
+      })
+      .catch((error) => {
+        console.error('Error:', error)
+      })
   }
+
+  /*
+      nacl_factory.instantiate(function (nacl) {
+        console.log('in nacl_factory')
+
+        console.log(nacl.to_hex(nacl.random_bytes(16)));
+
+      });
+*/
 
   return pdk
 }
 
 if (typeof define === 'undefined') {
-  window.PDK = pdkFunction()
+  if (typeof window !== 'undefined') {
+    window.PDK = pdkFunction()
+  } else {
+    PDK = pdkFunction() // eslint-disable-line no-global-assign, no-undef
+  }
 } else {
-  define(pdkFunction)
+  PDK = define(pdkFunction) // eslint-disable-line no-global-assign, no-undef
 }

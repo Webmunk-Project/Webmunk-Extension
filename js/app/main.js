@@ -24,7 +24,7 @@ requirejs.config({
 })
 
 requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
-  requirejs(['app/home', 'app/history', 'app/config'], function (home, history, config) {
+  requirejs(['app/home', 'app/config'], function (home, config) {
     document.documentElement.style.setProperty('--mdc-theme-primary', config.primaryColor)
     document.documentElement.style.setProperty('--mdc-theme-secondary', config.accentColor)
 
@@ -67,9 +67,23 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
         }
       })
 
+      chrome.runtime.sendMessage({ content: 'fetch_configuration' }, function (extensionConfig) {
+        let descriptionHtml = ''
+
+        extensionConfig.description.forEach(function (line) {
+          if (descriptionHtml !== '') {
+            descriptionHtml += '<br /><br />'
+          }
+
+          descriptionHtml += line
+        })
+
+        $('#valueDescription').html(descriptionHtml)
+      })
+
       pdk.enqueueDataPoint('webmunk-extension-action', {
         action: 'show-main-screen'
-      })
+      }, function () {})
     }
 
     const displaySettingsUi = function () {
@@ -83,7 +97,7 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
 
       pdk.enqueueDataPoint('webmunk-extension-action', {
         action: 'show-settings'
-      })
+      }, function () {})
     }
 
     const displayRulesUi = function () {
@@ -97,7 +111,7 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
 
       pdk.enqueueDataPoint('webmunk-extension-action', {
         action: 'show-rules'
-      })
+      }, function () {})
     }
 
     const dialog = mdc.dialog.MDCDialog.attachTo(document.querySelector('#dialog'))
@@ -216,7 +230,7 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
 
       pdk.enqueueDataPoint('webmunk-extension-action', {
         action: 'close-screen'
-      })
+      }, function () {})
 
       displayMainUi()
 
@@ -228,7 +242,7 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
 
       pdk.enqueueDataPoint('webmunk-extension-action', {
         action: 'open-settings'
-      })
+      }, function () {})
 
       displaySettingsUi()
 
@@ -253,7 +267,7 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
 
       pdk.enqueueDataPoint('webmunk-extension-action', {
         action: 'inspect-rules'
-      })
+      }, function () {})
 
       chrome.runtime.sendMessage({ content: 'fetch_configuration' }, function (message) {
         rulesJsonField.value = JSON.stringify(message, null, 2)
@@ -271,7 +285,7 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
     $('#actionCssHelp').click(function () {
       pdk.enqueueDataPoint('webmunk-extension-action', {
         action: 'open-css-help'
-      })
+      }, function () {})
 
       chrome.runtime.sendMessage({ content: 'open_css_help' }, function (message) {
       })
@@ -280,7 +294,7 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
     $('#actionSaveRules').click(function () {
       pdk.enqueueDataPoint('webmunk-extension-action', {
         action: 'save-rules'
-      })
+      }, function () {})
 
       if (validateRules()) {
         const newRules = JSON.parse(rulesJsonField.value)
@@ -310,7 +324,7 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
 
       pdk.enqueueDataPoint('webmunk-extension-action', {
         action: 'reload-rules'
-      })
+      }, function () {})
 
       $('#actionReloadRules').text('sync')
 
@@ -349,22 +363,30 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
 
       pdk.enqueueDataPoint('webmunk-extension-action', {
         action: 'upload-data'
-      })
+      }, function () {})
 
       if (uploading === false) {
         $('#actionUploadData').text('cloud_sync')
 
         uploading = true
 
-        pdk.uploadQueuedDataPoints(config.uploadUrl, function () {
-          $('#actionUploadData').text('cloud_upload')
+        chrome.runtime.sendMessage({ content: 'fetch_configuration' }, function (extensionConfig) {
+          pdk.uploadQueuedDataPoints(extensionConfig['upload-url'], function () {
+            $('#actionUploadData').text('cloud_upload')
 
-          $('#dialog-title').text('Data uploaded')
-          $('#dialog-content').text('Data uploaded successfully.')
+            $('#dialog-title').text('Data uploaded')
+            $('#dialog-content').text('Data uploaded successfully.')
 
-          dialog.open()
+            chrome.storage.local.set({
+              PDK_LAST_UPLOAD: (new Date().getTime())
+            }, function (result) {
+              displayMainUi()
+            })
 
-          uploading = false
+            dialog.open()
+
+            uploading = false
+          })
         })
       }
 
@@ -374,9 +396,7 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
     $('#resetExtension').click(function (eventObj) {
       eventObj.preventDefault()
 
-      history.resetDataCollection(function () {
-        displayMainUi()
-      })
+      // TODO
 
       return false
     })
