@@ -125,7 +125,7 @@ chrome.alarms.onAlarm.addListener(function (alarm) {
   chrome.storage.local.get({ 'webmunk-config': null }, function (result) {
     config = result['webmunk-config']
 
-    window.PDK.uploadQueuedDataPoints(config['upload-url'], function () {
+    window.PDK.uploadQueuedDataPoints(config['upload-url'], config.key, function () {
       chrome.storage.local.set({
         'pdk-last-upload': (new Date().getTime())
       }, function (result) {

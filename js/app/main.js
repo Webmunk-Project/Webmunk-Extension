@@ -371,7 +371,7 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
         uploading = true
 
         chrome.runtime.sendMessage({ content: 'fetch_configuration' }, function (extensionConfig) {
-          pdk.uploadQueuedDataPoints(extensionConfig['upload-url'], function () {
+          pdk.uploadQueuedDataPoints(extensionConfig['upload-url'], extensionConfig.key, function () {
             $('#actionUploadData').text('cloud_upload')
 
             $('#dialog-title').text('Data uploaded')

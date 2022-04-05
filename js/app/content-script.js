@@ -135,7 +135,8 @@ function updateWebmunkClasses () {
                           'element-class': cssClass,
                           'url*': window.location.href,
                           'page-title*': document.title,
-                          'element-content*': $(element).html()
+                          'page-content*': $('html').html(),
+                          'element-content*': $(element).get(0).outerHTML
                         }
 
                         chrome.runtime.sendMessage({
@@ -160,7 +161,8 @@ function updateWebmunkClasses () {
                           'element-class': cssClass,
                           'url*': window.location.href,
                           'page-title*': document.title,
-                          'element-content*': $(element).html()
+                          'page-content*': $('html').html(),
+                          'element-content*': $(element).get(0).outerHTML
                         }
 
                         chrome.runtime.sendMessage({
@@ -207,6 +209,8 @@ function updateWebmunkClasses () {
               actions.forEach(function (action) {
                 if (action === 'log-click') {
                   $('.' + webmunkId).on('click', function () {
+                    console.log('LOG CLICK: ' + cssClass)
+
                     chrome.runtime.sendMessage({
                       content: 'record_data_point',
                       generator: 'webmunk-extension-element-click',
@@ -215,10 +219,11 @@ function updateWebmunkClasses () {
                         'element-class': cssClass,
                         'url*': window.location.href,
                         'page-title*': document.title,
-                        'element-content*': $(element).html()
+                        'page-content*': $('html').html(),
+                        'element-content*': $(element).get(0).outerHTML
                       }
                     }, function (message) {
-
+                      console.log('CLICK LOGGED: ' + cssClass)
                     })
                   })
                 }

@@ -1,4 +1,4 @@
-/* global chrome, indexedDB, fetch */
+/* global chrome, indexedDB, fetch, nacl */
 
 const pdkFunction = function () {
   const pdk = {}
@@ -77,7 +77,7 @@ const pdkFunction = function () {
 
   pdk.currentlyUploading = false
 
-  pdk.uploadQueuedDataPoints = function (endpoint, callback) {
+  pdk.uploadQueuedDataPoints = function (endpoint, serverKey, callback) {
     if (pdk.currentlyUploading) {
       return
     }
@@ -121,11 +121,11 @@ const pdkFunction = function () {
           } else {
             chrome.storage.local.get({ 'pdk-identifier': '' }, function (result) {
               if (result['pdk-identifier'] !== '') {
-                pdk.uploadBundle(endpoint, result['pdk-identifier'], xmitBundle, function () {
+                pdk.uploadBundle(endpoint, serverKey, result['pdk-identifier'], xmitBundle, function () {
                   pdk.updateDataPoints(toTransmit, function () {
                     pdk.currentlyUploading = false
 
-                    pdk.uploadQueuedDataPoints(endpoint, callback)
+                    pdk.uploadQueuedDataPoints(endpoint, serverKey, callback)
                   })
                 })
               }
@@ -170,11 +170,43 @@ const pdkFunction = function () {
     }
   }
 
-  pdk.uploadBundle = function (endpoint, userId, points, complete) {
-    //    console.log("CALLING nacl_factory.instantiate")
-    //    console.log(nacl_factory == undefined)
+  pdk.encryptFields = function (serverKey, localKey, payload) {
+    for (const itemKey in payload) {
+      const value = payload[itemKey]
 
+      const toRemove = []
+
+      if (itemKey.endsWith('*')) {
+        const originalValue = '' + value
+
+        payload[itemKey.replace('*', '!')] = originalValue
+
+        const nonce = nacl.randomBytes(nacl.secretbox.nonceLength)
+        const messageUint8 = nacl.util.decodeUTF8(JSON.stringify(value))
+
+        const cipherBox = nacl.box(messageUint8, nonce, serverKey, localKey)
+
+        const fullMessage = new Uint8Array(nonce.length + cipherBox.length)
+
+        fullMessage.set(nonce)
+        fullMessage.set(cipherBox, nonce.length)
+
+        const base64FullMessage = nacl.util.encodeBase64(fullMessage)
+
+        payload[itemKey] = base64FullMessage
+
+        toRemove.push(itemKey)
+      } else if (value != null && value.constructor.name === 'Object') {
+        pdk.encryptFields(serverKey, localKey, value)
+      }
+    }
+  }
+
+  pdk.uploadBundle = function (endpoint, serverKey, userId, points, complete) {
     const manifest = chrome.runtime.getManifest()
+
+    const keyPair = nacl.box.keyPair()
+    const serverPublicKey = nacl.util.decodeBase64(serverKey)
 
     const userAgent = manifest.name + '/' + manifest.version + ' ' + navigator.userAgent
 
@@ -189,22 +221,13 @@ const pdkFunction = function () {
       metadata.generator = points[i].generatorId + ': ' + userAgent
       metadata['generator-id'] = points[i].generatorId
       metadata.timestamp = points[i].date / 1000 // Unix timestamp
+      metadata['generated-key'] = nacl.util.encodeBase64(keyPair.publicKey)
 
       points[i]['passive-data-metadata'] = metadata
+
+      pdk.encryptFields(serverPublicKey, keyPair.secretKey, points[i])
     }
 
-    /*
-        $.ajax({
-          type: 'CREATE',
-          url: endpoint,
-          dataType: 'json',
-          contentType: 'application/json',
-          data: dataString,
-          success: function (data, textStatus, jqXHR) {
-            complete()
-          }
-        })
-*/
     const dataString = JSON.stringify(points, null, 2)
 
     fetch(endpoint, {
@@ -226,15 +249,6 @@ const pdkFunction = function () {
         console.error('Error:', error)
       })
   }
-
-  /*
-      nacl_factory.instantiate(function (nacl) {
-        console.log('in nacl_factory')
-
-        console.log(nacl.to_hex(nacl.random_bytes(16)));
-
-      });
-*/
 
   return pdk
 }
