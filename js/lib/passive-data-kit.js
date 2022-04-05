@@ -102,7 +102,9 @@ const pdkFunction = function () {
           const toTransmit = []
           const xmitBundle = []
 
-          for (let i = 0; i < pendingItems.length && i < 1000; i++) {
+          console.log('[PDK] Remaining data points: ' + pendingItems.length)
+
+          for (let i = 0; i < pendingItems.length && i < 64; i++) {
             const pendingItem = pendingItems[i]
 
             pendingItem.transmitted = new Date().getTime()

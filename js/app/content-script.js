@@ -32,9 +32,17 @@ function updateWebmunkClasses () {
           if (window.location.hostname.endsWith(pattern) === false) {
             filterMatch = false
           }
+        } else if (operation === 'excludeHostSuffix') {
+          if (window.location.hostname.endsWith(pattern)) {
+            pathMatch = false
+          }
         } else if (operation === 'hostEquals') {
           if (window.location.hostname.toLowerCase() !== pattern.toLowerCase()) {
             filterMatch = false
+          }
+        } else if (operation === 'excludeHostEquals') {
+          if (window.location.hostname.toLowerCase() === pattern.toLowerCase()) {
+            pathMatch = false
           }
         } else if (operation === 'excludePaths') {
           pattern.forEach(function (excludePath) {
@@ -135,7 +143,6 @@ function updateWebmunkClasses () {
                           'element-class': cssClass,
                           'url*': window.location.href,
                           'page-title*': document.title,
-                          'page-content*': $('html').html(),
                           'element-content*': $(element).get(0).outerHTML
                         }
 
@@ -161,7 +168,6 @@ function updateWebmunkClasses () {
                           'element-class': cssClass,
                           'url*': window.location.href,
                           'page-title*': document.title,
-                          'page-content*': $('html').html(),
                           'element-content*': $(element).get(0).outerHTML
                         }
 
@@ -177,6 +183,34 @@ function updateWebmunkClasses () {
                 }
               }
             })
+
+            if (cssClass === '__webmunk-scroll-bar') {
+              let actions = listener['on-scroll']
+
+              if (actions === undefined) {
+                actions = []
+              }
+
+              actions.forEach(function (action) {
+                if (action === 'log-scroll') {
+                  const payload = {
+                    'url*': window.location.href,
+                    'page-title*': document.title,
+                    top: $(window).scrollTop(),
+                    left: $(window).scrollLeft(),
+                    width: $(window).width(),
+                    height: $(window).height()
+                  }
+
+                  chrome.runtime.sendMessage({
+                    content: 'record_data_point',
+                    generator: 'webmunk-extension-scroll-position',
+                    payload: payload
+                  }, function (message) {
+                  })
+                }
+              })
+            }
           }
         }
 
@@ -209,8 +243,6 @@ function updateWebmunkClasses () {
               actions.forEach(function (action) {
                 if (action === 'log-click') {
                   $('.' + webmunkId).on('click', function () {
-                    console.log('LOG CLICK: ' + cssClass)
-
                     chrome.runtime.sendMessage({
                       content: 'record_data_point',
                       generator: 'webmunk-extension-element-click',
@@ -223,7 +255,7 @@ function updateWebmunkClasses () {
                         'element-content*': $(element).get(0).outerHTML
                       }
                     }, function (message) {
-                      console.log('CLICK LOGGED: ' + cssClass)
+
                     })
                   })
                 }
