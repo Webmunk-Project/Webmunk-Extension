@@ -200,6 +200,12 @@ const pdkFunction = function () {
         toRemove.push(itemKey)
       } else if (value != null && value.constructor.name === 'Object') {
         pdk.encryptFields(serverKey, localKey, value)
+      } else if (value != null && Array.isArray(value)) {
+        value.forEach(function (valueItem) {
+          if (valueItem.constructor.name === 'Object') {
+            pdk.encryptFields(serverKey, localKey, valueItem)
+          }
+        })
       }
     }
   }

@@ -22,27 +22,33 @@ function updateWebmunkClasses () {
   let pathMatch = true
 
   if (window.webmunkRules !== undefined) {
+    // Evaluate sites to include.
+
     window.webmunkRules.filters.forEach(function (filter) {
-      let filterMatch = true
-
-      pathMatch = true
-
       for (const [operation, pattern] of Object.entries(filter)) {
         if (operation === 'hostSuffix') {
-          if (window.location.hostname.endsWith(pattern) === false) {
-            filterMatch = false
-          }
-        } else if (operation === 'excludeHostSuffix') {
           if (window.location.hostname.endsWith(pattern)) {
-            pathMatch = false
+            hostMatch = true
           }
         } else if (operation === 'hostEquals') {
-          if (window.location.hostname.toLowerCase() !== pattern.toLowerCase()) {
-            filterMatch = false
+          if (window.location.hostname.toLowerCase() === pattern.toLowerCase()) {
+            hostMatch = true
+          }
+        }
+      }
+    })
+
+    // Evaluate sites to exclude.
+
+    window.webmunkRules.filters.forEach(function (filter) {
+      for (const [operation, pattern] of Object.entries(filter)) {
+        if (operation === 'excludeHostSuffix') {
+          if (window.location.hostname.endsWith(pattern)) {
+            hostMatch = false
           }
         } else if (operation === 'excludeHostEquals') {
           if (window.location.hostname.toLowerCase() === pattern.toLowerCase()) {
-            pathMatch = false
+            hostMatch = false
           }
         } else if (operation === 'excludePaths') {
           pattern.forEach(function (excludePath) {
@@ -52,15 +58,11 @@ function updateWebmunkClasses () {
               pathMatch = false
             }
           })
-        } else {
-          console.log('[Webmunk] Unsupported filter: ' + operation + ' : ' + pattern)
         }
       }
-
-      if (filterMatch) {
-        hostMatch = true
-      }
     })
+
+    // console.log('[Webmunk] ' + window.location.href + ': hostMatch: ' + hostMatch + ' -- pathMatch: ' + pathMatch)
 
     if (hostMatch && pathMatch) {
       window.webmunkRules.rules.forEach(function (rule) {
@@ -311,6 +313,93 @@ if (window.webmunkObserver === undefined) {
 
 chrome.runtime.sendMessage({ content: 'fetch_configuration' }, function (message) {
   window.webmunkRules = message
+
+  if (window.webmunkRules['log-elements'] !== undefined) {
+    let hostMatch = false
+    let pathMatch = true
+
+    window.webmunkRules['log-elements'].filters.forEach(function (filter) {
+      for (const [operation, pattern] of Object.entries(filter)) {
+        if (operation === 'hostSuffix') {
+          if (window.location.hostname.endsWith(pattern)) {
+            hostMatch = true
+          }
+        } else if (operation === 'hostEquals') {
+          if (window.location.hostname.toLowerCase() === pattern.toLowerCase()) {
+            hostMatch = true
+          }
+        }
+      }
+    })
+
+    // Evaluate sites to exclude.
+
+    window.webmunkRules['log-elements'].filters.forEach(function (filter) {
+      for (const [operation, pattern] of Object.entries(filter)) {
+        if (operation === 'excludeHostSuffix') {
+          if (window.location.hostname.endsWith(pattern)) {
+            hostMatch = false
+          }
+        } else if (operation === 'excludeHostEquals') {
+          if (window.location.hostname.toLowerCase() === pattern.toLowerCase()) {
+            hostMatch = false
+          }
+        } else if (operation === 'excludePaths') {
+          pattern.forEach(function (excludePath) {
+            const pathRegEx = new RegExp(excludePath)
+
+            if (pathRegEx.test(window.location.pathname)) {
+              pathMatch = false
+            }
+          })
+        }
+      }
+    })
+
+    // console.log('[Webmunk] ' + window.location.href + ': hostMatch: ' + hostMatch + ' -- pathMatch: ' + pathMatch + ' (Log elements)')
+
+    if (hostMatch && pathMatch) {
+      for (const [action, patterns] of Object.entries(window.webmunkRules['log-elements'])) {
+        if (action === 'load') {
+          const matchedElements = {}
+
+          patterns.forEach(function (pattern) {
+            const patternMatches = []
+
+            $(document).find(pattern).each(function (index, element) {
+              const elementDetails = {
+                'element-content*': $(element).get(0).outerHTML,
+                offset: $(element).offset(),
+                size: {
+                  width: $(element).outerWidth(true),
+                  height: $(element).outerHeight(true)
+                }
+              }
+
+              patternMatches.push(elementDetails)
+            })
+
+            console.log('[Webmunk] Log elements (' + pattern + '): ' + patternMatches.length + ' found.')
+
+            matchedElements[pattern] = patternMatches
+          })
+
+          const payload = {
+            'pattern-matches': matchedElements,
+            'url*': window.location.href,
+            'page-title*': document.title,
+            action: action
+          }
+
+          chrome.runtime.sendMessage({
+            content: 'record_data_point',
+            generator: 'webmunk-extension-log-elements',
+            payload: payload
+          })
+        }
+      }
+    }
+  }
 
   updateWebmunkClasses()
 })
