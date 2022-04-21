@@ -90,6 +90,8 @@ function handleMessage (request, sender, sendResponse) {
       })
     })
   } else if (request.content === 'record_data_point') {
+    request.payload['tab-id'] = sender.tab.id
+
     window.PDK.enqueueDataPoint(request.generator, request.payload, function () {
       sendResponse({
         message: 'Data point enqueued successfully.',
