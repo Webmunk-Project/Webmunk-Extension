@@ -1,4 +1,6 @@
-/* global chrome, chrome */
+/* global chrome, fetch */
+
+const PDK_IDENTIFIER = 'pdk-identifier'
 
 function openWindow () {
   chrome.windows.create({
@@ -74,6 +76,69 @@ chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
   }
 })
 
+function refreshConfiguration (sendResponse) {
+  chrome.storage.local.get({ PDK_IDENTIFIER: '' }, function (result) {
+    if (result[PDK_IDENTIFIER] !== '') {
+      chrome.storage.local.get({ 'webmunk-config': null }, function (result) {
+        config = result['webmunk-config']
+
+        if (config['enroll-url'] === undefined) {
+          config['enroll-url'] = 'https://enroll.webmunk.org/enroll/enroll.json'
+        }
+
+        const endpoint = config['enroll-url'] + '?identifier=' + result[PDK_IDENTIFIER]
+
+        fetch(endpoint, {
+          redirect: 'follow' // manual, *follow, error
+        })
+          .then(response => response.json())
+          .then(function (data) {
+            if (data.rules !== undefined) {
+              chrome.storage.local.set({
+                'webmunk-config': data.rules
+              }, function (result) {
+                if (data.rules.tasks !== undefined && data.rules.tasks.length > 0) {
+                  chrome.action.setBadgeBackgroundColor(
+                    { color: '#008000' }, // Green
+                    function () {
+                      chrome.action.setBadgeText(
+                        {
+                          text: '' + data.rules.tasks.length
+                        }, // Green
+                        function () { /* ... */
+
+                        })
+                    })
+                } else {
+                  chrome.action.setBadgeBackgroundColor(
+                    { color: [0, 0, 0, 255] }, // Green
+                    function () {
+                      chrome.action.setBadgeText(
+                        {
+                          text: ''
+                        }, // Green
+                        function () { /* ... */
+
+                        })
+                    })
+                }
+
+                sendResponse(data.rules)
+              })
+            } else {
+              sendResponse(null)
+            }
+          })
+          .catch((error) => {
+            console.error('Error:', error)
+          })
+      })
+    } else {
+      sendResponse(null)
+    }
+  })
+}
+
 function handleMessage (request, sender, sendResponse) {
   if (request.content === 'fetch_configuration') {
     chrome.alarms.create('fetch-configuration', { when: (Date.now() + 500) })
@@ -102,6 +167,8 @@ function handleMessage (request, sender, sendResponse) {
     chrome.windows.create({
       url: 'https://api.jquery.com/category/selectors/'
     })
+  } else if (request.content === 'refresh_configuration') {
+    refreshConfiguration(sendResponse)
   }
 
   return true
@@ -134,5 +201,9 @@ chrome.alarms.onAlarm.addListener(function (alarm) {
 
       })
     })
+  })
+
+  refreshConfiguration(function (response) {
+    console.log('BG REFRESH COMPLETE')
   })
 })

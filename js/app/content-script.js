@@ -287,8 +287,6 @@ function updateWebmunkClasses () {
                           }
                         }
                       })
-
-                      console.log('CLICK ANCESTOR LOCATED ' + found)
                     }
 
                     chrome.runtime.sendMessage({

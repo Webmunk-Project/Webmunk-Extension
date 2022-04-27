@@ -68,17 +68,37 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
       })
 
       chrome.runtime.sendMessage({ content: 'fetch_configuration' }, function (extensionConfig) {
-        let descriptionHtml = ''
+        if (extensionConfig.tasks === undefined || extensionConfig.tasks.length === 0) {
+          let descriptionHtml = ''
 
-        extensionConfig.description.forEach(function (line) {
-          if (descriptionHtml !== '') {
-            descriptionHtml += '<br /><br />'
-          }
+          extensionConfig.description.forEach(function (line) {
+            if (descriptionHtml !== '') {
+              descriptionHtml += '<br /><br />'
+            }
 
-          descriptionHtml += line
-        })
+            descriptionHtml += line
+          })
 
-        $('#valueDescription').html(descriptionHtml)
+          $('#valueDescription').html(descriptionHtml)
+
+          $('#mainTasks').hide()
+          $('#mainDescription').show()
+        } else {
+          let tasksHtml = '<ul style="padding-right: 40px;">'
+
+          extensionConfig.tasks.forEach(function (task) {
+            tasksHtml += '<li><p><a href="' + task.url + '" target="_blank" style="text-decoration: none;">' + task.message + '</a></p></li>'
+          })
+
+          tasksHtml += '</ul>'
+
+          tasksHtml += '<p class="mdc-typography--caption">Tasks will be removed after confirmation of completion.</p>'
+
+          $('#valueTasks').html(tasksHtml)
+
+          $('#mainDescription').hide()
+          $('#mainTasks').show()
+        }
       })
 
       pdk.enqueueDataPoint('webmunk-extension-action', {
@@ -328,28 +348,23 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
 
       $('#actionReloadRules').text('sync')
 
-      chrome.storage.local.get({ 'pdk-identifier': '' }, function (result) {
-        if (result[PDK_IDENTIFIER] !== '') {
-          const payload = {
-            identifier: result[PDK_IDENTIFIER]
-          }
+      chrome.runtime.sendMessage({ content: 'refresh_configuration' }, function (extensionConfig) {
+        if (extensionConfig !== null) {
+          $('#dialog-title').text('Rules updated')
+          $('#dialog-content').text('Fetched updated rules successfully.')
 
-          $.get(config.enrollUrl, payload, function (data) {
-            if (data.rules !== undefined) {
-              chrome.storage.local.set({
-                'webmunk-config': data.rules
-              }, function (result) {
-                $('#dialog-title').text('Rules updated')
-                $('#dialog-content').text('Fetched updated rules successfully.')
+          dialog.open()
 
-                dialog.open()
+          $('#actionReloadRules').text('refresh')
 
-                $('#actionReloadRules').text('refresh')
-              })
-            } else {
-              $('#actionReloadRules').text('sync_problem')
-            }
-          })
+          displayMainUi()
+        } else {
+          $('#dialog-title').text('Error refreshing rules')
+          $('#dialog-content').text('An error was encountered refreshing the rules. Please verify that you have a working Internet connection.')
+
+          dialog.open()
+
+          $('#actionReloadRules').text('sync_problem')
         }
       })
 

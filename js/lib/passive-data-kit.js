@@ -230,7 +230,7 @@ const pdkFunction = function () {
       metadata['generator-id'] = points[i].generatorId
       metadata.timestamp = points[i].date / 1000 // Unix timestamp
       metadata['generated-key'] = nacl.util.encodeBase64(keyPair.publicKey)
-      metadata.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      metadata.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
 
       points[i]['passive-data-metadata'] = metadata
 
