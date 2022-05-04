@@ -96,6 +96,14 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
 
           $('#valueTasks').html(tasksHtml)
 
+          if (extensionConfig['pending-tasks-label'] !== undefined) {
+            $('#pendingTasksTitle').html(extensionConfig['pending-tasks-label'])
+          } else {
+            $('#pendingTasksTitle').html('Pending Tasks')
+          }
+
+          $('#valueTasks').html(tasksHtml)
+
           $('#mainDescription').hide()
           $('#mainTasks').show()
         }

@@ -261,27 +261,22 @@ function updateWebmunkClasses () {
                   options = action.options
                 }
 
+                if (options === undefined) {
+                  options = {}
+                }
+
                 if (actionName === 'log-click') {
                   $('.' + webmunkId).on('click', function () {
                     let logElement = $(element)
 
-                    console.log('CLICK FOR ' + $(element))
-
-                    console.log('CLICK OPTIONS ' + JSON.stringify(options))
-
                     if (options.ancestors !== undefined) {
                       let found = false
 
-                      console.log('CLICK ANCESTORS ' + JSON.stringify(options.ancestors))
-
                       options.ancestors.forEach(function (ancestorPattern) {
-                        console.log('CLICK LOOKING FOR ' + ancestorPattern)
                         if (found === false) {
                           const ancestorElement = $(element).closest(ancestorPattern)
 
                           if (ancestorElement.length > 0) {
-                            console.log('CLICK FOUND ' + ancestorPattern)
-
                             logElement = ancestorElement
                             found = true
                           }
@@ -329,6 +324,10 @@ function updateWebmunkClasses () {
   }
 }
 
+if (window.webmunkUpdateScheduleId === undefined) {
+  window.webmunkUpdateScheduleId = -1
+}
+
 if (window.webmunkObserver === undefined) {
   window.webmunkListener = function (mutationsList) {
     let doUpdate = false
@@ -342,7 +341,21 @@ if (window.webmunkObserver === undefined) {
     }
 
     if (doUpdate) {
-      updateWebmunkClasses()
+      let timeout = 5000
+
+      if (window.webmunkUpdateScheduleId === -1) {
+        timeout = 250
+
+        window.webmunkUpdateScheduleId = null
+      }
+
+      if (window.webmunkUpdateScheduleId === null) {
+        window.webmunkUpdateScheduleId = window.setTimeout(function () {
+          updateWebmunkClasses()
+
+          window.webmunkUpdateScheduleId = null
+        }, timeout)
+      }
     }
   }
 
