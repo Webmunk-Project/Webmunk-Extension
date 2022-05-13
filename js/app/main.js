@@ -1,6 +1,5 @@
 /* global requirejs, chrome */
 
-const PDK_IDENTIFIER = 'pdk-identifier'
 const PDK_LAST_UPLOAD = 'pdk-last-upload'
 // const PDK_TOTAL_UPLOADED = 'pdk-total-uploaded'
 
@@ -52,10 +51,10 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
       $('.main-ui-button').show()
 
       chrome.storage.local.get({ 'pdk-identifier': '' }, function (result) {
-        if (result[PDK_IDENTIFIER] === '') {
+        if (result['pdk-identifier'] === '') {
           $('#valueIndentifier').text('Unknown')
         } else {
-          $('#valueIndentifier').text(result[PDK_IDENTIFIER])
+          $('#valueIndentifier').text(result['pdk-identifier'])
         }
       })
 
@@ -198,7 +197,10 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
     }
 
     chrome.storage.local.get({ 'pdk-identifier': '' }, function (result) {
-      if (result[PDK_IDENTIFIER] === '') {
+      console.log('TEST IF ID')
+      console.log(result)
+
+      if (result['pdk-identifier'] === '') {
         displayIdentifierUi()
       } else {
         displayMainUi()
@@ -356,24 +358,35 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
 
       $('#actionReloadRules').text('sync')
 
-      chrome.runtime.sendMessage({ content: 'refresh_configuration' }, function (extensionConfig) {
-        if (extensionConfig !== null) {
-          $('#dialog-title').text('Rules updated')
-          $('#dialog-content').text('Fetched updated rules successfully.')
+      chrome.storage.local.get({ 'pdk-identifier': '' }, function (result) {
+        const payload = {}
 
-          dialog.open()
+        console.log('RESULT (ID)')
+        console.log(result)
 
-          $('#actionReloadRules').text('refresh')
-
-          displayMainUi()
-        } else {
-          $('#dialog-title').text('Error refreshing rules')
-          $('#dialog-content').text('An error was encountered refreshing the rules. Please verify that you have a working Internet connection.')
-
-          dialog.open()
-
-          $('#actionReloadRules').text('sync_problem')
+        if (result['pdk-identifier'] !== '') {
+          payload.identifier = result['pdk-identifier']
         }
+
+        chrome.runtime.sendMessage({ content: 'refresh_configuration', payload: payload }, function (extensionConfig) {
+          if (extensionConfig !== null) {
+            $('#dialog-title').text('Rules updated')
+            $('#dialog-content').text('Fetched updated rules successfully.')
+
+            dialog.open()
+
+            $('#actionReloadRules').text('refresh')
+
+            displayMainUi()
+          } else {
+            $('#dialog-title').text('Error refreshing rules')
+            $('#dialog-content').text('An error was encountered refreshing the rules. Please verify that you have a working Internet connection.')
+
+            dialog.open()
+
+            $('#actionReloadRules').text('sync_problem')
+          }
+        })
       })
 
       return false

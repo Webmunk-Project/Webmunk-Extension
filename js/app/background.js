@@ -1,17 +1,6 @@
 /* global chrome, fetch */
 
-const PDK_IDENTIFIER = 'pdk-identifier'
-
 function openWindow () {
-  chrome.windows.create({
-    height: 480,
-    width: 640,
-    type: 'panel',
-    url: chrome.runtime.getURL('index.html')
-  })
-}
-
-chrome.action.onClicked.addListener(function (tab) {
   const optionsUrl = chrome.runtime.getURL('index.html')
 
   chrome.tabs.query({}, function (extensionTabs) {
@@ -24,9 +13,18 @@ chrome.action.onClicked.addListener(function (tab) {
     }
 
     if (found === false) {
-      openWindow()
+      chrome.windows.create({
+        height: 480,
+        width: 640,
+        type: 'panel',
+        url: chrome.runtime.getURL('index.html')
+      })
     }
   })
+}
+
+chrome.action.onClicked.addListener(function (tab) {
+  openWindow()
 })
 
 let config = null
@@ -77,8 +75,10 @@ chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
 })
 
 function refreshConfiguration (sendResponse) {
-  chrome.storage.local.get({ PDK_IDENTIFIER: '' }, function (result) {
-    if (result[PDK_IDENTIFIER] !== '') {
+  chrome.storage.local.get({ 'pdk-identifier': '' }, function (result) {
+    const identifier = result['pdk-identifier']
+
+    if (identifier !== undefined && identifier !== '') {
       chrome.storage.local.get({ 'webmunk-config': null }, function (result) {
         config = result['webmunk-config']
 
@@ -86,7 +86,7 @@ function refreshConfiguration (sendResponse) {
           config['enroll-url'] = 'https://enroll.webmunk.org/enroll/enroll.json'
         }
 
-        const endpoint = config['enroll-url'] + '?identifier=' + result[PDK_IDENTIFIER]
+        const endpoint = config['enroll-url'] + '?identifier=' + identifier
 
         fetch(endpoint, {
           redirect: 'follow' // manual, *follow, error
@@ -109,6 +109,26 @@ function refreshConfiguration (sendResponse) {
 
                         })
                     })
+
+                  chrome.storage.local.get(['WebmunkLastNotificationTime'], function (result) {
+                    let lastNotification = result.WebmunkLastNotificationTime
+
+                    if (lastNotification === undefined) {
+                      lastNotification = 0
+                    }
+
+                    const now = new Date().getTime()
+
+                    if (now - lastNotification > (60 * 60 * 1000)) {
+                      openWindow()
+
+                      chrome.storage.local.set({
+                        WebmunkLastNotificationTime: now
+                      }, function (result) {
+
+                      })
+                    }
+                  })
                 } else {
                   chrome.action.setBadgeBackgroundColor(
                     { color: [0, 0, 0, 255] }, // Green
@@ -141,18 +161,10 @@ function refreshConfiguration (sendResponse) {
 
 function handleMessage (request, sender, sendResponse) {
   if (request.content === 'fetch_configuration') {
-    chrome.alarms.create('fetch-configuration', { when: (Date.now() + 500) })
+    chrome.storage.local.get({ 'webmunk-config': null }, function (result) {
+      config = result['webmunk-config']
 
-    chrome.alarms.onAlarm.addListener(function (alarm) {
-      chrome.storage.local.get({ 'webmunk-config': null }, function (result) {
-        config = result['webmunk-config']
-
-        sendResponse(config)
-
-        chrome.alarms.clear('fetch-configuration', function () {
-
-        })
-      })
+      sendResponse(config)
     })
   } else if (request.content === 'record_data_point') {
     request.payload['tab-id'] = sender.tab.id
@@ -168,7 +180,21 @@ function handleMessage (request, sender, sendResponse) {
       url: 'https://api.jquery.com/category/selectors/'
     })
   } else if (request.content === 'refresh_configuration') {
-    refreshConfiguration(sendResponse)
+    const identifier = request.payload.identifier
+
+    console.log('REQUEST')
+    console.log(request)
+    console.log(identifier)
+
+    if (identifier !== undefined) {
+      chrome.storage.local.set({
+        'pdk-identifier': identifier
+      }, function (result) {
+        refreshConfiguration(sendResponse)
+      })
+    } else {
+      refreshConfiguration(sendResponse)
+    }
   }
 
   return true
@@ -178,6 +204,8 @@ chrome.runtime.onMessage.addListener(handleMessage)
 
 chrome.storage.local.get(['PDKExtensionInstallTime'], function (result) {
   if (result.PDKExtensionInstallTime === undefined) {
+    openWindow()
+
     const now = new Date().getTime()
 
     chrome.storage.local.set({
@@ -204,6 +232,10 @@ chrome.alarms.onAlarm.addListener(function (alarm) {
   })
 
   refreshConfiguration(function (response) {
-    console.log('BG REFRESH COMPLETE')
+    // console.log('BG REFRESH COMPLETE')
   })
+})
+
+refreshConfiguration(function (response) {
+  console.log('[Webmunk] Initialized.')
 })

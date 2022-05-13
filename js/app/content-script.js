@@ -3,6 +3,10 @@
 window.webmunkLoading = false
 window.webmunkListenersLoaded = false
 
+window.webmunkInitialized = new Date().getTime()
+window.webmunkUpdateScheduleId = -1
+window.webmunkNeedsFirstRun = true
+
 function uuidv4 () {
   return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
     (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
@@ -62,14 +66,12 @@ function updateWebmunkClasses () {
       }
     })
 
-    // console.log('[Webmunk] ' + window.location.href + ': hostMatch: ' + hostMatch + ' -- pathMatch: ' + pathMatch)
-
     if (hostMatch && pathMatch) {
       window.webmunkRules.rules.forEach(function (rule) {
         if (rule.match !== undefined) {
           const matches = $(document).find(rule.match)
 
-          console.log('[Webmunk] matches[' + rule.match + ']: ' + matches.length)
+          console.log('[Webmunk] matches[' + rule.match + ']: ' + matches.length + ' (' + window.webmunkPageId + ')')
 
           if (matches.length > 0) {
             chrome.runtime.sendMessage({
@@ -311,6 +313,8 @@ function updateWebmunkClasses () {
         }
 
         window.webmunkListenersLoaded = true
+
+        console.log('[Webmunk] Connected (' + window.webmunkPageId + ').')
       }
     } else {
       console.log('[Webmunk] Disconnecting - no filters matched (' + window.webmunkPageId + ').')
@@ -322,10 +326,6 @@ function updateWebmunkClasses () {
       window.webmunkLoading = false
     }, 100)
   }
-}
-
-if (window.webmunkUpdateScheduleId === undefined) {
-  window.webmunkUpdateScheduleId = -1
 }
 
 if (window.webmunkObserver === undefined) {
@@ -341,19 +341,19 @@ if (window.webmunkObserver === undefined) {
     }
 
     if (doUpdate) {
-      let timeout = 5000
+      let timeout = 2500
 
-      if (window.webmunkUpdateScheduleId === -1) {
-        timeout = 250
+      const now = new Date().getTime()
 
-        window.webmunkUpdateScheduleId = null
+      if (now - window.webmunkInitialized < 2500) {
+        timeout = 500
       }
 
-      if (window.webmunkUpdateScheduleId === null) {
+      if (window.webmunkUpdateScheduleId === -1) {
         window.webmunkUpdateScheduleId = window.setTimeout(function () {
           updateWebmunkClasses()
 
-          window.webmunkUpdateScheduleId = null
+          window.webmunkUpdateScheduleId = -1
         }, timeout)
       }
     }
@@ -443,7 +443,7 @@ chrome.runtime.sendMessage({ content: 'fetch_configuration' }, function (message
                 patternMatches.push(elementDetails)
               })
 
-              console.log('[Webmunk] Log elements (' + pattern + '): ' + patternMatches.length + ' found.')
+              console.log('[Webmunk] Log elements (' + pattern + '): ' + patternMatches.length + ' found. (' + window.webmunkPageId + ')')
 
               matchedElements[pattern] = patternMatches
             })
