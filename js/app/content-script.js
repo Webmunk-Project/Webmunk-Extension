@@ -16,17 +16,11 @@ function uuidv4 () {
 window.webmunkPageId = uuidv4()
 
 $.expr.pseudos.webmunkRandomMirror = $.expr.createPseudo(function (parameters) {
-  console.log('webmunkRandomMirror.params = ' + parameters)
-
-  // .webmunk-highlight-block .s-result-item:not(.webmunk-highlight-block)
-
   const paramTokens = parameters.split(' ')
 
   const toMatch = $(paramTokens[0])
   let tagged = $(paramTokens[1] + '[data-webmunk-mirror="' + paramTokens[0] + '"]')
   let toTag = $(paramTokens[1] + ':not([data-webmunk-mirror="' + paramTokens[0] + '"])')
-
-  console.log('webmunkRandomMirror.counts = ' + toMatch.length + ' / ' + tagged.length + ' / ' + toTag.length)
 
   while (toMatch.length > tagged.length && toTag.length > 0) {
     const randomIndex = Math.floor(Math.random() * toTag.length)
@@ -35,8 +29,6 @@ $.expr.pseudos.webmunkRandomMirror = $.expr.createPseudo(function (parameters) {
 
     tagged = $(paramTokens[1] + '[data-webmunk-mirror="' + paramTokens[0] + '"]')
     toTag = $(paramTokens[1] + ':not([data-webmunk-mirror="' + paramTokens[0] + '"])')
-
-    console.log('webmunkRandomMirror.counts = ' + toMatch.length + ' / ' + tagged.length + ' / ' + toTag.length + ' // ' + randomIndex)
   }
 
   return function (elem) {
@@ -49,6 +41,17 @@ $.expr.pseudos.webmunkRandomMirror = $.expr.createPseudo(function (parameters) {
     return false
   }
 })
+
+$.expr.pseudos.webmunkContainsInsensitive = $.expr.createPseudo(function (query) {
+  return function (elem) {
+    return $(elem).text().toUpperCase().indexOf(query.toUpperCase()) >= 0;
+  }
+})
+
+// jQuery.expr[':'].icontains = function(a, i, m) {
+//  return jQuery(a).text().toUpperCase()
+//      .indexOf(m[3].toUpperCase()) >= 0;
+// };
 
 function updateWebmunkClasses () {
   if (window.webmunkLoading || window.webmunkRules === undefined) {
