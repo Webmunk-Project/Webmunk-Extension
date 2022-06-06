@@ -197,9 +197,6 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
     }
 
     chrome.storage.local.get({ 'pdk-identifier': '' }, function (result) {
-      console.log('TEST IF ID')
-      console.log(result)
-
       if (result['pdk-identifier'] === '') {
         displayIdentifierUi()
       } else {
@@ -360,9 +357,6 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
 
       chrome.storage.local.get({ 'pdk-identifier': '' }, function (result) {
         const payload = {}
-
-        console.log('RESULT (ID)')
-        console.log(result)
 
         if (result['pdk-identifier'] !== '') {
           payload.identifier = result['pdk-identifier']
