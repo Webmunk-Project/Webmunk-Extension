@@ -44,7 +44,7 @@ $.expr.pseudos.webmunkRandomMirror = $.expr.createPseudo(function (parameters) {
 
 $.expr.pseudos.webmunkContainsInsensitive = $.expr.createPseudo(function (query) {
   return function (elem) {
-    return $(elem).text().toUpperCase().indexOf(query.toUpperCase()) >= 0;
+    return $(elem).text().toUpperCase().indexOf(query.toUpperCase()) >= 0
   }
 })
 
