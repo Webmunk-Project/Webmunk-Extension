@@ -1,6 +1,5 @@
 /* global requirejs, chrome */
 
-const PDK_LAST_UPLOAD = 'pdk-last-upload'
 // const PDK_TOTAL_UPLOADED = 'pdk-total-uploaded'
 
 requirejs.config({
@@ -59,10 +58,13 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
       })
 
       chrome.storage.local.get({ 'pdk-last-upload': '' }, function (result) {
-        if (result[PDK_LAST_UPLOAD] === '') {
+        console.log('pdk-last-upload')
+        console.log(result)
+
+        if (result['pdk-last-upload'] === '') {
           $('#valueLastUpload').text('Never')
         } else {
-          $('#valueLastUpload').text(moment(result[PDK_LAST_UPLOAD]).format('llll'))
+          $('#valueLastUpload').text(moment(result['pdk-last-upload']).format('llll'))
         }
       })
 
@@ -91,7 +93,7 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
 
           tasksHtml += '</ul>'
 
-          tasksHtml += '<p class="mdc-typography--caption">Tasks will be removed after confirmation of completion.</p>'
+          tasksHtml += '<p class="mdc-typography--caption">Tasks will be removed after completion (it may take a few hours).</p>'
 
           $('#valueTasks').html(tasksHtml)
 
@@ -160,7 +162,7 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
 
         home.validateIdentifier(identifier, function (title, message, newIdentifier, data) {
           $('#dialog-title').text(title)
-          $('#dialog-content').text(message)
+          $('#dialog-content').html(message)
 
           identifier = newIdentifier
 
@@ -408,7 +410,7 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
             $('#dialog-content').text('Data uploaded successfully.')
 
             chrome.storage.local.set({
-              PDK_LAST_UPLOAD: (new Date().getTime())
+              'pdk-last-upload': (new Date().getTime())
             }, function (result) {
               displayMainUi()
             })

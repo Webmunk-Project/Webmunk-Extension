@@ -105,11 +105,15 @@ function updateWebmunkClasses () {
     })
 
     if (hostMatch && pathMatch) {
+      const addedClasses = []
+
       window.webmunkRules.rules.forEach(function (rule) {
         if (rule.match !== undefined) {
           const matches = $(document).find(rule.match)
 
-          console.log('[Webmunk] matches[' + rule.match + ']: ' + matches.length + ' (' + window.webmunkPageId + ')')
+          if (matches.length > 0) {
+            console.log('[Webmunk] matches[' + rule.match + ']: ' + matches.length + ' (' + window.webmunkPageId + ')')
+          }
 
           if (matches.length > 0) {
             chrome.runtime.sendMessage({
@@ -132,6 +136,10 @@ function updateWebmunkClasses () {
                 if ($(this).attr('class').includes('webmunk_id_') === false) {
                   $(this).addClass('webmunk_id_' + uuidv4())
                 }
+
+                if (addedClasses.indexOf(rule['add-class']) === -1) {
+                  addedClasses.push(rule['add-class'])
+                }
               }
 
               if (rule['remove-class'] !== undefined) {
@@ -140,6 +148,23 @@ function updateWebmunkClasses () {
             })
           }
         }
+      })
+
+      addedClasses.forEach(function (className) {
+        $(document).find('.' + className + ':not(.webmunk-class-member-logged-' + className + ')').each(function (index, element) {
+          chrome.runtime.sendMessage({
+            content: 'record_data_point',
+            generator: 'webmunk-extension-class-added',
+            payload: {
+              'class-name': className,
+              'url*': window.location.href,
+              'page-title*': document.title,
+              'element-content*': $(element).get(0).outerHTML
+            }
+          }, function (message) {
+            $(element).addClass('webmunk-class-member-logged-' + className)
+          })
+        })
       })
 
       if (window.webmunkListenersLoaded === false) {
@@ -499,6 +524,8 @@ chrome.runtime.sendMessage({ content: 'fetch_configuration' }, function (message
               payload: payload
             })
           }
+
+          // log leave
         }
       }
     })
