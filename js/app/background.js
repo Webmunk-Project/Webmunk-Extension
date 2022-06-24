@@ -119,7 +119,7 @@ function refreshConfiguration (sendResponse) {
 
                     const now = new Date().getTime()
 
-                    if (now - lastNotification > (60 * 60 * 1000)) {
+                    if (now - lastNotification > (8 * 60 * 60 * 1000)) {
                       openWindow()
 
                       chrome.storage.local.set({

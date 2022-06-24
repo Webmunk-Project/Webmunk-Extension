@@ -76,6 +76,12 @@ function updateWebmunkClasses () {
           if (window.location.hostname.toLowerCase() === pattern.toLowerCase()) {
             hostMatch = true
           }
+        } else if (operation === 'urlMatches') {
+          const matchRe = new RegExp(pattern)
+
+          if (window.location.href.toLowerCase().match(matchRe)) {
+            hostMatch = true
+          }
         }
       }
     })
@@ -454,6 +460,12 @@ chrome.runtime.sendMessage({ content: 'fetch_configuration' }, function (message
           }
         } else if (operation === 'hostEquals') {
           if (window.location.hostname.toLowerCase() === pattern.toLowerCase()) {
+            hostMatch = true
+          }
+        } else if (operation === 'urlMatches') {
+          const matchRe = new RegExp(pattern)
+
+          if (window.location.href.toLowerCase().match(matchRe)) {
             hostMatch = true
           }
         }
