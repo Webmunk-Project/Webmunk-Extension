@@ -57,13 +57,13 @@ const pdkFunction = function () {
         .put(payload)
 
       request.onsuccess = function (event) {
-        console.log('[PDK] Data point saved successfully.')
+        console.log('[PDK] Data point saved successfully: ' + generatorId + '.')
 
         complete()
       }
 
       request.onerror = function (event) {
-        console.log('[PDK] Data point enqueuing failed.')
+        console.log('[PDK] Data point enqueuing failed: ' + generatorId + '.')
         console.log(event)
 
         complete()
@@ -104,7 +104,9 @@ const pdkFunction = function () {
 
           console.log('[PDK] Remaining data points: ' + pendingItems.length)
 
-          for (let i = 0; i < pendingItems.length && i < 64; i++) {
+          let bundleLength = 0
+
+          for (let i = 0; i < pendingItems.length && bundleLength < (4 * 1024 * 1024); i++) {
             const pendingItem = pendingItems[i]
 
             pendingItem.transmitted = new Date().getTime()
@@ -114,7 +116,13 @@ const pdkFunction = function () {
 
             toTransmit.push(pendingItem)
             xmitBundle.push(pendingItem.dataPoint)
+
+            const bundleString = JSON.stringify(xmitBundle)
+
+            bundleLength += bundleString.length
           }
+
+          console.log('[PDK] Created bundle of size ' + bundleLength + '.')
 
           if (toTransmit.length === 0) {
             callback()

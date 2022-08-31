@@ -113,6 +113,8 @@ function updateWebmunkClasses () {
     if (hostMatch && pathMatch) {
       const addedClasses = []
 
+      const lastRuleMatches = {}
+
       window.webmunkRules.rules.forEach(function (rule) {
         if (rule.match !== undefined) {
           const matches = $(document).find(rule.match)
@@ -122,18 +124,30 @@ function updateWebmunkClasses () {
           }
 
           if (matches.length > 0) {
-            chrome.runtime.sendMessage({
-              content: 'record_data_point',
-              generator: 'webmunk-extension-matched-rule',
-              payload: {
-                rule: rule.match,
-                count: matches.length,
-                'url*': window.location.href,
-                'page-title*': document.title
-              }
-            }, function (message) {
+            const matchKey = 'rule.match__' + rule.match + '__' + window.location.href + '__' + window.location.href
 
-            })
+            if (lastRuleMatches[matchKey] === undefined) {
+              lastRuleMatches[matchKey] = 0
+            }
+
+            if (matches.length > lastRuleMatches[matchKey]) {
+              lastRuleMatches[matchKey] = matches.length
+
+              console.log('[Webmunk] Match key: ' + matchKey + ': ' + matches.length)
+
+              chrome.runtime.sendMessage({
+                content: 'record_data_point',
+                generator: 'webmunk-extension-matched-rule',
+                payload: {
+                  rule: rule.match,
+                  count: matches.length,
+                  'url*': window.location.href,
+                  'page-title*': document.title
+                }
+              }, function (message) {
+
+              })
+            }
 
             matches.each(function (index, element) {
               if (rule['add-class'] !== undefined) {
@@ -168,8 +182,9 @@ function updateWebmunkClasses () {
               'element-content*': $(element).get(0).outerHTML
             }
           }, function (message) {
-            $(element).addClass('webmunk-class-member-logged-' + className)
           })
+
+          $(element).addClass('webmunk-class-member-logged-' + className)
         })
       })
 
@@ -211,6 +226,8 @@ function updateWebmunkClasses () {
 
                     actions.forEach(function (action) {
                       if (action === 'log-visible') {
+                        console.log('[Webmunk] log-visible')
+
                         const payload = {
                           'element-id': webmunkId,
                           'element-class': cssClass,
@@ -241,6 +258,8 @@ function updateWebmunkClasses () {
 
                     actions.forEach(function (action) {
                       if (action === 'log-hidden') {
+                        console.log('[Webmunk] log-hidden')
+
                         const payload = {
                           'element-id': webmunkId,
                           'element-class': cssClass,

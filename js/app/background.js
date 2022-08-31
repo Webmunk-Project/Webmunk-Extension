@@ -218,9 +218,13 @@ chrome.storage.local.get(['PDKExtensionInstallTime'], function (result) {
 
 chrome.alarms.create('pdk-upload', { periodInMinutes: 5 })
 
-chrome.alarms.onAlarm.addListener(function (alarm) {
+const uploadAndRefresh = function (alarm) {
+  console.log('[Webmunk] Uploading data and refreshing configuration...')
+
   chrome.storage.local.get({ 'webmunk-config': null }, function (result) {
     config = result['webmunk-config']
+
+    console.log('[Webmunk] Uploading queued data points...')
 
     window.PDK.uploadQueuedDataPoints(config['upload-url'], config.key, function () {
       chrome.storage.local.set({
@@ -234,8 +238,12 @@ chrome.alarms.onAlarm.addListener(function (alarm) {
   refreshConfiguration(function (response) {
     // console.log('BG REFRESH COMPLETE')
   })
-})
+}
+
+chrome.alarms.onAlarm.addListener(uploadAndRefresh)
 
 refreshConfiguration(function (response) {
   console.log('[Webmunk] Initialized.')
+
+  uploadAndRefresh('pdk-upload')
 })
