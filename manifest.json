@@ -31,5 +31,8 @@
   ],
   "host_permissions": [
     "<all_urls>"
+  ],
+  "webmunk_extensions": [
+  	"extensions/cookies"
   ]
 }

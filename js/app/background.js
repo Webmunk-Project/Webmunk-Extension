@@ -159,6 +159,8 @@ function refreshConfiguration (sendResponse) {
   })
 }
 
+const handlerFunctions = {}
+
 function handleMessage (request, sender, sendResponse) {
   if (request.content === 'fetch_configuration') {
     chrome.storage.local.get({ 'webmunk-config': null }, function (result) {
@@ -166,6 +168,8 @@ function handleMessage (request, sender, sendResponse) {
 
       sendResponse(config)
     })
+
+    return true
   } else if (request.content === 'record_data_point') {
     request.payload['tab-id'] = sender.tab.id
 
@@ -175,10 +179,14 @@ function handleMessage (request, sender, sendResponse) {
         success: true
       })
     })
+
+    return true
   } else if (request.content === 'open_css_help') {
     chrome.windows.create({
       url: 'https://api.jquery.com/category/selectors/'
     })
+
+    return true
   } else if (request.content === 'refresh_configuration') {
     const identifier = request.payload.identifier
 
@@ -195,9 +203,20 @@ function handleMessage (request, sender, sendResponse) {
     } else {
       refreshConfiguration(sendResponse)
     }
+
+    return true
+  } else {
+    const handlerFunction = handlerFunctions[request.content]
+
+    console.log('[Webmunk] Seeking handler for ' + request.content + '...')
+    console.log(handlerFunction)
+
+    if (handlerFunction !== undefined) {
+      return handlerFunction(request, sender, sendResponse)
+    }
   }
 
-  return true
+  return false
 }
 
 chrome.runtime.onMessage.addListener(handleMessage)
@@ -242,8 +261,22 @@ const uploadAndRefresh = function (alarm) {
 
 chrome.alarms.onAlarm.addListener(uploadAndRefresh)
 
+const webmunkExtensions = []
+
+const registerCustomExtension = function (callback) { // eslint-disable-line no-unused-vars
+  webmunkExtensions.push(callback)
+}
+
+const registerMessageHandler = function (name, handlerFunction) { // eslint-disable-line no-unused-vars
+  handlerFunctions[name] = handlerFunction
+}
+
 refreshConfiguration(function (response) {
   console.log('[Webmunk] Initialized.')
+
+  for (let i = 0; i < webmunkExtensions.length; i++) {
+    webmunkExtensions[i](response)
+  }
 
   uploadAndRefresh('pdk-upload')
 })
