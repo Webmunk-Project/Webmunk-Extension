@@ -19,6 +19,11 @@ jobs:
       - restore_cache:
           key: build-{{ .Branch }}-{{ checksum "package.json" }}
       - run:
+          name: Checkout submodules
+          command: |
+            git submodule init
+            git submodule update
+      - run:
           name: Validate Javascript code
           command: |
             npm install
