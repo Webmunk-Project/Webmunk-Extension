@@ -1,7 +1,5 @@
 /* global requirejs, chrome */
 
-const PDK_IDENTIFIER = 'pdk-identifier'
-const PDK_LAST_UPLOAD = 'pdk-last-upload'
 // const PDK_TOTAL_UPLOADED = 'pdk-total-uploaded'
 
 requirejs.config({
@@ -24,7 +22,7 @@ requirejs.config({
 })
 
 requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
-  requirejs(['app/home', 'app/history', 'app/config'], function (home, history, config) {
+  requirejs(['app/home', 'app/config'], function (home, config) {
     document.documentElement.style.setProperty('--mdc-theme-primary', config.primaryColor)
     document.documentElement.style.setProperty('--mdc-theme-secondary', config.accentColor)
 
@@ -52,24 +50,69 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
       $('.main-ui-button').show()
 
       chrome.storage.local.get({ 'pdk-identifier': '' }, function (result) {
-        if (result[PDK_IDENTIFIER] === '') {
+        if (result['pdk-identifier'] === '') {
           $('#valueIndentifier').text('Unknown')
         } else {
-          $('#valueIndentifier').text(result[PDK_IDENTIFIER])
+          $('#valueIndentifier').text(result['pdk-identifier'])
         }
       })
 
       chrome.storage.local.get({ 'pdk-last-upload': '' }, function (result) {
-        if (result[PDK_LAST_UPLOAD] === '') {
+        console.log('pdk-last-upload')
+        console.log(result)
+
+        if (result['pdk-last-upload'] === '') {
           $('#valueLastUpload').text('Never')
         } else {
-          $('#valueLastUpload').text(moment(result[PDK_LAST_UPLOAD]).format('llll'))
+          $('#valueLastUpload').text(moment(result['pdk-last-upload']).format('llll'))
+        }
+      })
+
+      chrome.runtime.sendMessage({ content: 'fetch_configuration' }, function (extensionConfig) {
+        if (extensionConfig.tasks === undefined || extensionConfig.tasks.length === 0) {
+          let descriptionHtml = ''
+
+          extensionConfig.description.forEach(function (line) {
+            if (descriptionHtml !== '') {
+              descriptionHtml += '<br /><br />'
+            }
+
+            descriptionHtml += line
+          })
+
+          $('#valueDescription').html(descriptionHtml)
+
+          $('#mainTasks').hide()
+          $('#mainDescription').show()
+        } else {
+          let tasksHtml = '<ul style="padding-right: 40px;">'
+
+          extensionConfig.tasks.forEach(function (task) {
+            tasksHtml += '<li><p><a href="' + task.url + '" target="_blank" style="text-decoration: none;">' + task.message + '</a></p></li>'
+          })
+
+          tasksHtml += '</ul>'
+
+          tasksHtml += '<p class="mdc-typography--caption">Tasks will be removed after completion (it may take a few hours).</p>'
+
+          $('#valueTasks').html(tasksHtml)
+
+          if (extensionConfig['pending-tasks-label'] !== undefined) {
+            $('#pendingTasksTitle').html(extensionConfig['pending-tasks-label'])
+          } else {
+            $('#pendingTasksTitle').html('Pending Tasks')
+          }
+
+          $('#valueTasks').html(tasksHtml)
+
+          $('#mainDescription').hide()
+          $('#mainTasks').show()
         }
       })
 
       pdk.enqueueDataPoint('webmunk-extension-action', {
         action: 'show-main-screen'
-      })
+      }, function () {})
     }
 
     const displaySettingsUi = function () {
@@ -83,7 +126,7 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
 
       pdk.enqueueDataPoint('webmunk-extension-action', {
         action: 'show-settings'
-      })
+      }, function () {})
     }
 
     const displayRulesUi = function () {
@@ -97,7 +140,7 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
 
       pdk.enqueueDataPoint('webmunk-extension-action', {
         action: 'show-rules'
-      })
+      }, function () {})
     }
 
     const dialog = mdc.dialog.MDCDialog.attachTo(document.querySelector('#dialog'))
@@ -119,7 +162,7 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
 
         home.validateIdentifier(identifier, function (title, message, newIdentifier, data) {
           $('#dialog-title').text(title)
-          $('#dialog-content').text(message)
+          $('#dialog-content').html(message)
 
           identifier = newIdentifier
 
@@ -156,7 +199,7 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
     }
 
     chrome.storage.local.get({ 'pdk-identifier': '' }, function (result) {
-      if (result[PDK_IDENTIFIER] === '') {
+      if (result['pdk-identifier'] === '') {
         displayIdentifierUi()
       } else {
         displayMainUi()
@@ -216,7 +259,7 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
 
       pdk.enqueueDataPoint('webmunk-extension-action', {
         action: 'close-screen'
-      })
+      }, function () {})
 
       displayMainUi()
 
@@ -228,7 +271,7 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
 
       pdk.enqueueDataPoint('webmunk-extension-action', {
         action: 'open-settings'
-      })
+      }, function () {})
 
       displaySettingsUi()
 
@@ -253,7 +296,7 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
 
       pdk.enqueueDataPoint('webmunk-extension-action', {
         action: 'inspect-rules'
-      })
+      }, function () {})
 
       chrome.runtime.sendMessage({ content: 'fetch_configuration' }, function (message) {
         rulesJsonField.value = JSON.stringify(message, null, 2)
@@ -271,7 +314,7 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
     $('#actionCssHelp').click(function () {
       pdk.enqueueDataPoint('webmunk-extension-action', {
         action: 'open-css-help'
-      })
+      }, function () {})
 
       chrome.runtime.sendMessage({ content: 'open_css_help' }, function (message) {
       })
@@ -280,7 +323,7 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
     $('#actionSaveRules').click(function () {
       pdk.enqueueDataPoint('webmunk-extension-action', {
         action: 'save-rules'
-      })
+      }, function () {})
 
       if (validateRules()) {
         const newRules = JSON.parse(rulesJsonField.value)
@@ -310,33 +353,36 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
 
       pdk.enqueueDataPoint('webmunk-extension-action', {
         action: 'reload-rules'
-      })
+      }, function () {})
 
       $('#actionReloadRules').text('sync')
 
       chrome.storage.local.get({ 'pdk-identifier': '' }, function (result) {
-        if (result[PDK_IDENTIFIER] !== '') {
-          const payload = {
-            identifier: result[PDK_IDENTIFIER]
-          }
+        const payload = {}
 
-          $.get(config.enrollUrl, payload, function (data) {
-            if (data.rules !== undefined) {
-              chrome.storage.local.set({
-                'webmunk-config': data.rules
-              }, function (result) {
-                $('#dialog-title').text('Rules updated')
-                $('#dialog-content').text('Fetched updated rules successfully.')
-
-                dialog.open()
-
-                $('#actionReloadRules').text('refresh')
-              })
-            } else {
-              $('#actionReloadRules').text('sync_problem')
-            }
-          })
+        if (result['pdk-identifier'] !== '') {
+          payload.identifier = result['pdk-identifier']
         }
+
+        chrome.runtime.sendMessage({ content: 'refresh_configuration', payload: payload }, function (extensionConfig) {
+          if (extensionConfig !== null) {
+            $('#dialog-title').text('Rules updated')
+            $('#dialog-content').text('Fetched updated rules successfully.')
+
+            dialog.open()
+
+            $('#actionReloadRules').text('refresh')
+
+            displayMainUi()
+          } else {
+            $('#dialog-title').text('Error refreshing rules')
+            $('#dialog-content').text('An error was encountered refreshing the rules. Please verify that you have a working Internet connection.')
+
+            dialog.open()
+
+            $('#actionReloadRules').text('sync_problem')
+          }
+        })
       })
 
       return false
@@ -349,22 +395,30 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
 
       pdk.enqueueDataPoint('webmunk-extension-action', {
         action: 'upload-data'
-      })
+      }, function () {})
 
       if (uploading === false) {
         $('#actionUploadData').text('cloud_sync')
 
         uploading = true
 
-        pdk.uploadQueuedDataPoints(config.uploadUrl, function () {
-          $('#actionUploadData').text('cloud_upload')
+        chrome.runtime.sendMessage({ content: 'fetch_configuration' }, function (extensionConfig) {
+          pdk.uploadQueuedDataPoints(extensionConfig['upload-url'], extensionConfig.key, function () {
+            $('#actionUploadData').text('cloud_upload')
 
-          $('#dialog-title').text('Data uploaded')
-          $('#dialog-content').text('Data uploaded successfully.')
+            $('#dialog-title').text('Data uploaded')
+            $('#dialog-content').text('Data uploaded successfully.')
 
-          dialog.open()
+            chrome.storage.local.set({
+              'pdk-last-upload': (new Date().getTime())
+            }, function (result) {
+              displayMainUi()
+            })
 
-          uploading = false
+            dialog.open()
+
+            uploading = false
+          })
         })
       }
 
@@ -374,9 +428,7 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
     $('#resetExtension').click(function (eventObj) {
       eventObj.preventDefault()
 
-      history.resetDataCollection(function () {
-        displayMainUi()
-      })
+      // TODO
 
       return false
     })

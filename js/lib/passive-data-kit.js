@@ -1,4 +1,4 @@
-/* global chrome */
+/* global chrome, indexedDB, fetch, nacl */
 
 const pdkFunction = function () {
   const pdk = {}
@@ -12,7 +12,7 @@ const pdkFunction = function () {
 
     const PDK_DATABASE_VERSION = 1
 
-    const request = window.indexedDB.open('passive_data_kit', PDK_DATABASE_VERSION)
+    const request = indexedDB.open('passive_data_kit', PDK_DATABASE_VERSION)
 
     request.onerror = function (event) {
       failure(event)
@@ -43,7 +43,7 @@ const pdkFunction = function () {
     }
   }
 
-  pdk.enqueueDataPoint = function (generatorId, dataPoint) {
+  pdk.enqueueDataPoint = function (generatorId, dataPoint, complete) {
     pdk.openDatabase(function (db) {
       const payload = {
         generatorId: generatorId,
@@ -57,12 +57,16 @@ const pdkFunction = function () {
         .put(payload)
 
       request.onsuccess = function (event) {
-        console.log('[PDK] Data point saved successfully.')
+        console.log('[PDK] Data point saved successfully: ' + generatorId + '.')
+
+        complete()
       }
 
       request.onerror = function (event) {
-        console.log('[PDK] Data point enqueuing failed.')
+        console.log('[PDK] Data point enqueuing failed: ' + generatorId + '.')
         console.log(event)
+
+        complete()
       }
     }, function (error) {
       if (error) {
@@ -71,7 +75,15 @@ const pdkFunction = function () {
     })
   }
 
-  pdk.uploadQueuedDataPoints = function (endpoint, callback) {
+  pdk.currentlyUploading = false
+
+  pdk.uploadQueuedDataPoints = function (endpoint, serverKey, callback) {
+    if (pdk.currentlyUploading) {
+      return
+    }
+
+    pdk.currentlyUploading = true
+
     pdk.openDatabase(function (db) {
       const index = db.transaction(['dataPoints'], 'readonly')
         .objectStore('dataPoints')
@@ -84,11 +96,17 @@ const pdkFunction = function () {
 
         if (pendingItems.length === 0) {
           callback() // Finished
+
+          pdk.currentlyUploading = false
         } else {
           const toTransmit = []
           const xmitBundle = []
 
-          for (let i = 0; i < pendingItems.length && i < 1000; i++) {
+          console.log('[PDK] Remaining data points: ' + pendingItems.length)
+
+          let bundleLength = 0
+
+          for (let i = 0; i < pendingItems.length && bundleLength < (4 * 1024 * 1024); i++) {
             const pendingItem = pendingItems[i]
 
             pendingItem.transmitted = new Date().getTime()
@@ -98,18 +116,26 @@ const pdkFunction = function () {
 
             toTransmit.push(pendingItem)
             xmitBundle.push(pendingItem.dataPoint)
+
+            const bundleString = JSON.stringify(xmitBundle)
+
+            bundleLength += bundleString.length
           }
+
+          console.log('[PDK] Created bundle of size ' + bundleLength + '.')
 
           if (toTransmit.length === 0) {
             callback()
+
+            pdk.currentlyUploading = false
           } else {
             chrome.storage.local.get({ 'pdk-identifier': '' }, function (result) {
               if (result['pdk-identifier'] !== '') {
-                pdk.uploadBundle(endpoint, result['pdk-identifier'], xmitBundle, function () {
+                pdk.uploadBundle(endpoint, serverKey, result['pdk-identifier'], xmitBundle, function () {
                   pdk.updateDataPoints(toTransmit, function () {
-                    window.setTimeout(function () {
-                      pdk.uploadQueuedDataPoints(endpoint, callback)
-                    }, 0)
+                    pdk.currentlyUploading = false
+
+                    pdk.uploadQueuedDataPoints(endpoint, serverKey, callback)
                   })
                 })
               }
@@ -137,18 +163,14 @@ const pdkFunction = function () {
           .put(dataPoint)
 
         request.onsuccess = function (event) {
-          window.setTimeout(function () {
-            pdk.updateDataPoints(dataPoints, complete)
-          }, 0)
+          pdk.updateDataPoints(dataPoints, complete)
         }
 
         request.onerror = function (event) {
           console.log('The data has write has failed')
           console.log(event)
 
-          window.setTimeout(function () {
-            pdk.updateDataPoints(dataPoints, complete)
-          }, 0)
+          pdk.updateDataPoints(dataPoints, complete)
         }
       }, function (error) {
         console.log(error)
@@ -158,11 +180,49 @@ const pdkFunction = function () {
     }
   }
 
-  pdk.uploadBundle = function (endpoint, userId, points, complete) {
-    console.log("CALLING nacl_factory.instantiate")
-    console.log(nacl_factory == undefined)
+  pdk.encryptFields = function (serverKey, localKey, payload) {
+    for (const itemKey in payload) {
+      const value = payload[itemKey]
 
+      const toRemove = []
+
+      if (itemKey.endsWith('*')) {
+        const originalValue = '' + value
+
+        payload[itemKey.replace('*', '!')] = originalValue
+
+        const nonce = nacl.randomBytes(nacl.secretbox.nonceLength)
+        const messageUint8 = nacl.util.decodeUTF8(JSON.stringify(value))
+
+        const cipherBox = nacl.box(messageUint8, nonce, serverKey, localKey)
+
+        const fullMessage = new Uint8Array(nonce.length + cipherBox.length)
+
+        fullMessage.set(nonce)
+        fullMessage.set(cipherBox, nonce.length)
+
+        const base64FullMessage = nacl.util.encodeBase64(fullMessage)
+
+        payload[itemKey] = base64FullMessage
+
+        toRemove.push(itemKey)
+      } else if (value != null && value.constructor.name === 'Object') {
+        pdk.encryptFields(serverKey, localKey, value)
+      } else if (value != null && Array.isArray(value)) {
+        value.forEach(function (valueItem) {
+          if (valueItem.constructor.name === 'Object') {
+            pdk.encryptFields(serverKey, localKey, valueItem)
+          }
+        })
+      }
+    }
+  }
+
+  pdk.uploadBundle = function (endpoint, serverKey, userId, points, complete) {
     const manifest = chrome.runtime.getManifest()
+
+    const keyPair = nacl.box.keyPair()
+    const serverPublicKey = nacl.util.decodeBase64(serverKey)
 
     const userAgent = manifest.name + '/' + manifest.version + ' ' + navigator.userAgent
 
@@ -177,36 +237,45 @@ const pdkFunction = function () {
       metadata.generator = points[i].generatorId + ': ' + userAgent
       metadata['generator-id'] = points[i].generatorId
       metadata.timestamp = points[i].date / 1000 // Unix timestamp
+      metadata['generated-key'] = nacl.util.encodeBase64(keyPair.publicKey)
+      metadata.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
 
       points[i]['passive-data-metadata'] = metadata
+
+      pdk.encryptFields(serverPublicKey, keyPair.secretKey, points[i])
     }
 
+    const dataString = JSON.stringify(points, null, 2)
 
-	  nacl_factory.instantiate(function (nacl) {
-		console.log('in nacl_factory')
-
-		console.log(nacl.to_hex(nacl.random_bytes(16)));
-
-		const dataString = JSON.stringify(points, null, 2)
-
-		$.ajax({
-		  type: 'CREATE',
-		  url: endpoint,
-		  dataType: 'json',
-		  contentType: 'application/json',
-		  data: dataString,
-		  success: function (data, textStatus, jqXHR) {
-			complete()
-		  }
-		})
-	  });
+    fetch(endpoint, {
+      method: 'CREATE',
+      mode: 'cors', // no-cors, *cors, same-origin
+      cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      redirect: 'follow', // manual, *follow, error
+      referrerPolicy: 'no-referrer', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+      body: dataString // body data type must match "Content-Type" header
+    })
+      .then(response => response.json())
+      .then(function (data) {
+        complete()
+      })
+      .catch((error) => {
+        console.error('Error:', error)
+      })
   }
 
   return pdk
 }
 
 if (typeof define === 'undefined') {
-  window.PDK = pdkFunction()
+  if (typeof window !== 'undefined') {
+    window.PDK = pdkFunction()
+  } else {
+    PDK = pdkFunction() // eslint-disable-line no-global-assign, no-undef
+  }
 } else {
-  define(pdkFunction)
+  PDK = define(pdkFunction) // eslint-disable-line no-global-assign, no-undef
 }

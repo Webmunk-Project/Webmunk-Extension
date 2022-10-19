@@ -6,7 +6,7 @@
 		<title>Webmunk</title>
 		<link rel="stylesheet" href="vendor/css/material-components-web.css">
 		<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-         <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 		<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap" rel="stylesheet"> 
 		<style>
@@ -23,7 +23,6 @@
 				color: #388E3C;
 				font-weight: bold;
 			}
-
 		</style>
 	</head>
 	<body class="mdc-typography" style="margin: 0;">
@@ -48,28 +47,28 @@
 						</div>
 					</div>
 
-					<button class="material-icons mdc-top-app-bar__action-item mdc-icon-button toolbar-button main-ui-button" aria-label="UploadData" id="actionUploadData" aria-describedby="actionUploadDataTooltip" style="display: none;">cloud_upload</button>
+					<button class="material-icons mdc-top-app-bar__action-item mdc-icon-button toolbar-button main-ui-button-off" aria-label="UploadData" id="actionUploadData" aria-describedby="actionUploadDataTooltip" style="display: none;">cloud_upload</button>
 					<div id="actionUploadDataTooltip" class="mdc-tooltip" role="tooltip" aria-hidden="true">
 						<div class="mdc-tooltip__surface mdc-tooltip__surface-animation">
 							Upload Data
 						</div>
 					</div>
 
-					<button class="material-icons mdc-top-app-bar__action-item mdc-icon-button toolbar-button main-ui-button" aria-label="Reload Rules" id="actionReloadRules" aria-describedby="actionReloadRulesTooltip" style="display: none;">refresh</button>
+					<button class="material-icons mdc-top-app-bar__action-item mdc-icon-button toolbar-button main-ui-button-off" aria-label="Reload Rules" id="actionReloadRules" aria-describedby="actionReloadRulesTooltip" style="display: none;">refresh</button>
 					<div id="actionReloadRulesTooltip" class="mdc-tooltip" role="tooltip" aria-hidden="true">
 						<div class="mdc-tooltip__surface mdc-tooltip__surface-animation">
 							Refresh Rules
 						</div>
 					</div>
 					
-					<button class="material-icons mdc-top-app-bar__action-item mdc-icon-button toolbar-button main-ui-button" aria-label="Inspect Rules" id="actionInspectRules" aria-describedby="actionInspectRulesTooltip" style="display: none;">rule</button>
+					<button class="material-icons mdc-top-app-bar__action-item mdc-icon-button toolbar-button main-ui-button-off" aria-label="Inspect Rules" id="actionInspectRules" aria-describedby="actionInspectRulesTooltip" style="display: none;">rule</button>
 					<div id="actionInspectRulesTooltip" class="mdc-tooltip" role="tooltip" aria-hidden="true">
 						<div class="mdc-tooltip__surface mdc-tooltip__surface-animation">
 							Inspect Rules
 						</div>
 					</div>
 					
-					<button class="material-icons mdc-top-app-bar__action-item mdc-icon-button toolbar-button main-ui-button" aria-label="Open Settings" id="actionOpenSettings" aria-describedby="actionOpenSettingsTooltip" style="display: none;">settings</button>
+					<button class="material-icons mdc-top-app-bar__action-item mdc-icon-button toolbar-button main-ui-button-off" aria-label="Open Settings" id="actionOpenSettings" aria-describedby="actionOpenSettingsTooltip" style="display: none;">settings</button>
 					<div id="actionOpenSettingsTooltip" class="mdc-tooltip" role="tooltip" aria-hidden="true">
 						<div class="mdc-tooltip__surface mdc-tooltip__surface-animation">
 							Open Settings
@@ -120,16 +119,18 @@
 							<div class="mdc-typography--subtitle2">Identifier</div>
 							<div class="mdc-typography--body1" id="valueIndentifier">Unknown</div>
 						</div>
-						<!-- 
-						<div class="mdc-layout-grid__cell mdc-layout-grid__cell--span-12">
-							<div style="text-align: right;">
-								<button class="mdc-button mdc-button--raised" id="uploadData">
-									<i class="material-icons mdc-button__icon" aria-hidden="true">cloud_upload</i>
-									<span class="mdc-button__label">Upload</span>
-								</button>
-							</div>
+						<div class="mdc-layout-grid__cell">
+							<div class="mdc-typography--subtitle2">Last Upload</div>
+							<div class="mdc-typography--body1" id="valueLastUpload">Loading&#8230;</div>
 						</div>
-						-->
+						<div class="mdc-layout-grid__cell mdc-layout-grid__cell--span-12" id="mainDescription">
+							<div class="mdc-typography--subtitle2">Description</div>
+							<div class="mdc-typography--body1" id="valueDescription">Loading&#8230;</div>
+						</div>
+						<div class="mdc-layout-grid__cell mdc-layout-grid__cell--span-12" id="mainTasks">
+							<div class="mdc-typography--subtitle2" id="pendingTasksTitle">Pending Tasks</div>
+							<div class="mdc-typography--body1" id="valueTasks">Loading&#8230;</div>
+						</div>
 					</div>
 				</div>
     		</div>
@@ -175,20 +176,6 @@
 						<div class="mdc-layout-grid__cell mdc-layout-grid__cell--span-12">
 							<div class="mdc-typography--subtitle2">About This Extension</div>
 							<div class="mdc-typography--body2" id="valueAboutExtension">-</div>
-						</div>
-						<div class="mdc-layout-grid__cell--span-6">
-							<div class="mdc-typography--subtitle2">Upload URL</div>
-							<div class="mdc-typography--body2" id="valueUploadUrl">(TODO)</div>
-						</div>
-						<div class="mdc-layout-grid__cell--span-6">
-							<div class="mdc-typography--subtitle2">Reset Data Collection</div>
-							<div class="mdc-typography--body2" id="valueTotalUploaded">Resets the history monitor to retrieve all available data.</div>
-							<div style="text-align: right">
-								<button class="mdc-button" id="resetExtension">
-									<i class="material-icons mdc-button__icon" aria-hidden="true">refresh</i> 
-									<span class="mdc-button__label">Reset Data</span>
-								</button>
-							</div>
 						</div>
 					</div>
 				</div>
@@ -251,7 +238,8 @@
 			</div>
 			<div class="mdc-dialog__scrim"></div>
 		</div>
-    
+		<script src="vendor/js/nacl.js"></script>
+		<script src="vendor/js/nacl-util.js"></script>
 		<script data-main="js/app/main.js" src="vendor/js/require.js"></script>
 	</body>
 </html>

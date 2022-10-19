@@ -1,10 +1,4 @@
 {
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "webmunk.team@gmail.com",
-      "strict_min_version": "55.0"
-    }
-  }, 
   "name": "Webmunk", 
   "short_name": "Webmunk", 
   "icons": {
@@ -16,16 +10,11 @@
   }, 
   "description": "Performs web experiments for research studies.", 
   "background": {
-    "scripts": [
-      "vendor/js/nacl_factory.js",
-      "vendor/js/jquery.js",
-      "js/lib/passive-data-kit.js",
-      "js/app/background.js"
-    ]
+    "service_worker": "js/app/background_loader.js"
   }, 
-  "version": "0.3", 
-  "manifest_version": 2, 
-  "browser_action": {
+  "version": "0.16", 
+  "manifest_version": 3, 
+  "action": {
     "default_icon": {
       "256": "images/icon-256.png", 
       "128": "images/icon-128.png", 
@@ -35,9 +24,15 @@
 	}    
   }, 
   "permissions": [
+  	"scripting",
     "storage", 
     "alarms",
-    "<all_urls>",
     "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "webmunk_extensions": [
+  	"extensions/cookies"
   ]
 }

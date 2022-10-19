@@ -105,3 +105,6 @@ dist
 
 .DS_Store
 *.xpi
+*.zip
+
+chrome-extension
