@@ -260,7 +260,7 @@ function updateWebmunkClasses () {
                         chrome.runtime.sendMessage({
                           content: 'record_data_point',
                           generator: 'webmunk-extension-element-show',
-                          payload: payload
+                          payload: payload // eslint-disable-line object-shorthand
                         }, function (message) {
                         })
                       }
@@ -292,7 +292,7 @@ function updateWebmunkClasses () {
                         chrome.runtime.sendMessage({
                           content: 'record_data_point',
                           generator: 'webmunk-extension-element-hide',
-                          payload: payload
+                          payload: payload // eslint-disable-line object-shorthand
                         }, function (message) {
                         })
                       }
@@ -323,7 +323,7 @@ function updateWebmunkClasses () {
                   chrome.runtime.sendMessage({
                     content: 'record_data_point',
                     generator: 'webmunk-extension-scroll-position',
-                    payload: payload
+                    payload: payload // eslint-disable-line object-shorthand
                   }, function (message) {
                   })
                 }
@@ -562,13 +562,13 @@ chrome.runtime.sendMessage({ content: 'fetch_configuration' }, function (message
               'pattern-matches': matchedElements,
               'url*': window.location.href,
               'page-title*': document.title,
-              action: action
+              action: action // eslint-disable-line object-shorthand
             }
 
             chrome.runtime.sendMessage({
               content: 'record_data_point',
               generator: 'webmunk-extension-log-elements',
-              payload: payload
+              payload: payload // eslint-disable-line object-shorthand
             })
           }
 

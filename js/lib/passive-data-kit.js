@@ -46,8 +46,8 @@ const pdkFunction = function () {
   pdk.enqueueDataPoint = function (generatorId, dataPoint, complete) {
     pdk.openDatabase(function (db) {
       const payload = {
-        generatorId: generatorId,
-        dataPoint: dataPoint,
+        generatorId: generatorId, // eslint-disable-line object-shorthand
+        dataPoint: dataPoint, // eslint-disable-line object-shorthand
         date: (new Date()).getTime(),
         transmitted: 0
       }

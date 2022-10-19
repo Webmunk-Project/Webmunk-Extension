@@ -364,7 +364,7 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
           payload.identifier = result['pdk-identifier']
         }
 
-        chrome.runtime.sendMessage({ content: 'refresh_configuration', payload: payload }, function (extensionConfig) {
+        chrome.runtime.sendMessage({ content: 'refresh_configuration', payload: payload }, function (extensionConfig) { // eslint-disable-line object-shorthand
           if (extensionConfig !== null) {
             $('#dialog-title').text('Rules updated')
             $('#dialog-content').text('Fetched updated rules successfully.')

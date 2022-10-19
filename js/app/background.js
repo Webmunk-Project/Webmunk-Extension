@@ -38,15 +38,15 @@ const loadRules = function (tabId) {
 
       chrome.scripting.insertCSS({
         target: {
-          tabId: tabId,
+          tabId: tabId, // eslint-disable-line object-shorthand
           allFrames: true
         },
-        css: css,
+        css: css, // eslint-disable-line object-shorthand
         origin: 'USER'
       }, function () {
         chrome.scripting.executeScript({
           target: {
-            tabId: tabId,
+            tabId: tabId, // eslint-disable-line object-shorthand
             allFrames: true
           },
           files: ['/vendor/js/jquery.js', '/js/app/content-script.js']
@@ -171,11 +171,13 @@ function handleMessage (request, sender, sendResponse) {
 
     return true
   } else if (request.content === 'record_data_point') {
+    console.log('[Webmunk] Recording ' + request.generator + ' data point...')
+
     request.payload['tab-id'] = sender.tab.id
 
     window.PDK.enqueueDataPoint(request.generator, request.payload, function () {
       sendResponse({
-        message: 'Data point enqueued successfully.',
+        message: 'Data point enqueued successfully: ' + request.generator,
         success: true
       })
     })
@@ -189,10 +191,6 @@ function handleMessage (request, sender, sendResponse) {
     return true
   } else if (request.content === 'refresh_configuration') {
     const identifier = request.payload.identifier
-
-    console.log('REQUEST')
-    console.log(request)
-    console.log(identifier)
 
     if (identifier !== undefined) {
       chrome.storage.local.set({
