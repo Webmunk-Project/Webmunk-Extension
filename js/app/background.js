@@ -206,8 +206,7 @@ function handleMessage (request, sender, sendResponse) {
   } else {
     const handlerFunction = handlerFunctions[request.content]
 
-    console.log('[Webmunk] Seeking handler for ' + request.content + '...')
-    console.log(handlerFunction)
+    console.log('[Webmunk] Fetching handler for ' + request.content + '...')
 
     if (handlerFunction !== undefined) {
       return handlerFunction(request, sender, sendResponse)

@@ -33,6 +33,7 @@
     "<all_urls>"
   ],
   "webmunk_extensions": [
-  	"extensions/cookies"
+  	"extensions/cookies",
+  	"extensions/quick_survey"
   ]
 }

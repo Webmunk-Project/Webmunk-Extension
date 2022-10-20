@@ -1,3 +1,6 @@
 [submodule "extensions/cookies"]
 	path = extensions/cookies
 	url = https://github.com/audacious-software/Extension-Cookie-Extension.git
+[submodule "extensions/quick_survey"]
+	path = extensions/quick_survey
+	url = https://github.com/audacious-software/Quick-Survey-Extension

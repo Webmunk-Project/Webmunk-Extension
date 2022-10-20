@@ -1,7 +1,15 @@
+import argparse
 import json
 import io
 import os
+import shutil
 import zipfile
+
+parser = argparse.ArgumentParser(description='Packages extension for Chrome distribution.')
+
+parser.add_argument('--dir', action='store_true', help='Generate expanded directory for loading unpacked extensions.')
+
+args = vars(parser.parse_args())
 
 manifest = json.load(open('manifest.json'))
 
@@ -40,8 +48,6 @@ with zipfile.ZipFile('chrome-extension.zip', mode='w') as extension_zip:
 
         for script in extension_manifest.get('content_scripts', []):
             script_filename = '%s/%s' % (extension, script)
-            
-            print('Reading %s' % script_filename)
 
             with io.open(script_filename, mode='r', encoding='utf-8') as content_script:
                 for content_line in content_script.readlines():
@@ -72,6 +78,7 @@ with zipfile.ZipFile('chrome-extension.zip', mode='w') as extension_zip:
             if 'EXTEND SCRIPTS' in line:
                 for script in service_worker_scripts:
                     loader_lines.append('scripts.push("../../%s")' % script)
+                    loader_lines.append('\n')
 
                 loader_lines.append('\n')
             else:
@@ -93,5 +100,11 @@ with zipfile.ZipFile('chrome-extension.zip', mode='w') as extension_zip:
 
     extension_zip.writestr('js/app/content-script.js', ''.join(content_lines))
 
+    if args.get('dir', False):
+        if os.path.exists('chrome-extension'):
+            try:
+                shutil.rmtree('chrome-extension')
+            except OSError as e:
+                print("Error: %s : %s" % ('chrome-extension', e.strerror))
 
-
+        extension_zip.extractall(path='chrome-extension')
