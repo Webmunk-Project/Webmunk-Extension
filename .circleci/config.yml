@@ -28,7 +28,7 @@ jobs:
           command: |
             npm install
             npx eslint js/
-            npx eslint extensions/
+            npx eslint modules/
       - save_cache:
           key: build-{{ .Branch }}-{{ checksum "package.json" }}
           paths:
