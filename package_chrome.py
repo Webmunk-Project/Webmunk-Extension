@@ -32,37 +32,37 @@ with zipfile.ZipFile('chrome-extension.zip', mode='w') as extension_zip:
 
     content_script_lines = []
 
-    for extension in manifest.get('webmunk_extensions', []):
-        extension_manifest = json.load(open('%s/extension.json' % extension))
+    for module in manifest.get('modules', []):
+        module_manifest = json.load(open('%s/module.json' % module))
 
-        print('Bundling %s...' % extension_manifest.get('name', None))
+        print('Bundling %s...' % module_manifest.get('name', None))
 
-        for script in extension_manifest.get('service_worker_scripts', []):
-            script_filename = '%s/%s' % (extension, script)
+        for script in module_manifest.get('service_worker_scripts', []):
+            script_filename = '%s/%s' % (module, script)
 
-            package_filename = 'js/%s/%s' % (extension, script)
+            package_filename = 'js/%s/%s' % (module, script)
 
             extension_zip.write(script_filename, package_filename)
 
             service_worker_scripts.append(package_filename)
 
-        for script in extension_manifest.get('content_scripts', []):
-            script_filename = '%s/%s' % (extension, script)
+        for script in module_manifest.get('content_scripts', []):
+            script_filename = '%s/%s' % (module, script)
 
             with io.open(script_filename, mode='r', encoding='utf-8') as content_script:
                 for content_line in content_script.readlines():
                     content_script_lines.append(content_line)
 
-        for permission in extension_manifest.get('permissions', []):
+        for permission in module_manifest.get('permissions', []):
             if (permission in manifest['permissions']) is False:
                 manifest['permissions'].append(permission)
 
-        for permission in extension_manifest.get('host_permissions', []):
+        for permission in module_manifest.get('host_permissions', []):
             if (permission in manifest['host_permissions']) is False:
                 manifest['host_permissions'].append(permission)
 
-    if 'webmunk_extensions' in manifest:
-        del manifest['webmunk_extensions']
+    if 'modules' in manifest:
+        del manifest['modules']
 
     extension_zip.writestr('manifest.json', json.dumps(manifest, indent=2))
     extension_zip.write('index.html')
@@ -90,7 +90,7 @@ with zipfile.ZipFile('chrome-extension.zip', mode='w') as extension_zip:
 
     with io.open('js/app/content-script.js', mode='r', encoding= 'utf-8') as content_js:
         for line in content_js.readlines():
-            if 'LOAD CONTENT EXTENSIONS' in line:
+            if 'LOAD CONTENT MODULES' in line:
                 for content_line in content_script_lines:
                     content_lines.append(content_line)
 

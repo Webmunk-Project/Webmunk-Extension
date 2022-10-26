@@ -7,13 +7,13 @@ window.webmunkInitialized = new Date().getTime()
 window.webmunkUpdateScheduleId = -1
 window.webmunkNeedsFirstRun = true
 
-window.webmunkExtensionCallbacks = []
+window.webmunkModuleCallbacks = []
 
-window.registerExtensionCallback = function (callback) {
-  window.webmunkExtensionCallbacks.push(callback)
+window.registerModuleCallback = function (callback) {
+  window.webmunkModuleCallbacks.push(callback)
 }
 
-// LOAD CONTENT EXTENSIONS
+// LOAD CONTENT MODULES
 
 function uuidv4 () {
   return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
@@ -578,7 +578,7 @@ chrome.runtime.sendMessage({ content: 'fetch_configuration' }, function (message
     })
   }
 
-  window.webmunkExtensionCallbacks.forEach(function (callback) {
+  window.webmunkModuleCallbacks.forEach(function (callback) {
     callback(message)
   })
 

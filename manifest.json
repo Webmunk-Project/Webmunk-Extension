@@ -12,7 +12,7 @@
   "background": {
     "service_worker": "js/app/background_loader.js"
   }, 
-  "version": "0.16", 
+  "version": "0.17", 
   "manifest_version": 3, 
   "action": {
     "default_icon": {
@@ -32,8 +32,6 @@
   "host_permissions": [
     "<all_urls>"
   ],
-  "webmunk_extensions": [
-  	"extensions/cookies",
-  	"extensions/quick_survey"
+  "modules": [
   ]
 }

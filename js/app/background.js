@@ -258,10 +258,10 @@ const uploadAndRefresh = function (alarm) {
 
 chrome.alarms.onAlarm.addListener(uploadAndRefresh)
 
-const webmunkExtensions = []
+const webmunkModules = []
 
-const registerCustomExtension = function (callback) { // eslint-disable-line no-unused-vars
-  webmunkExtensions.push(callback)
+const registerCustomModule = function (callback) { // eslint-disable-line no-unused-vars
+  webmunkModules.push(callback)
 }
 
 const registerMessageHandler = function (name, handlerFunction) { // eslint-disable-line no-unused-vars
@@ -271,8 +271,8 @@ const registerMessageHandler = function (name, handlerFunction) { // eslint-disa
 refreshConfiguration(function (response) {
   console.log('[Webmunk] Initialized.')
 
-  for (let i = 0; i < webmunkExtensions.length; i++) {
-    webmunkExtensions[i](response)
+  for (let i = 0; i < webmunkModules.length; i++) {
+    webmunkModules[i](response)
   }
 
   uploadAndRefresh('pdk-upload')
