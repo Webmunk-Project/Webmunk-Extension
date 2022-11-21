@@ -1,6 +1,12 @@
-[submodule "extensions/cookies"]
+[submodule "modules/cookies"]
 	path = modules/cookies
-	url = https://github.com/audacious-software/Extension-Cookie-Extension.git
-[submodule "extensions/quick_survey"]
+	url = https://github.com/audacious-software/Extension-Cookie-Module.git
+[submodule "modules/quick_survey"]
 	path = modules/quick_survey
-	url = https://github.com/audacious-software/Quick-Survey-Extension
+	url = https://github.com/audacious-software/Quick-Survey-Module
+[submodule "modules/screenshot"]
+	path = modules/screenshot
+	url = https://github.com/audacious-software/Screenshot-Module.git
+[submodule "modules/amazon"]
+	path = modules/amazon
+	url = https://github.com/audacious-software/Webmunk-Amazon-Module.git

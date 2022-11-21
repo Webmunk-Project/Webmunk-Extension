@@ -131,6 +131,8 @@ function updateWebmunkClasses () {
 
       const lastRuleMatches = {}
 
+      console.log('[Webmunk] Apply rules...')
+
       window.webmunkRules.rules.forEach(function (rule) {
         if (rule.match !== undefined) {
           const matches = $(document).find(rule.match)
@@ -185,6 +187,8 @@ function updateWebmunkClasses () {
           }
         }
       })
+
+      console.log('[Webmunk] Applied rules.')
 
       addedClasses.forEach(function (className) {
         $(document).find('.' + className + ':not(.webmunk-class-member-logged-' + className + ')').each(function (index, element) {
@@ -433,6 +437,12 @@ function updateWebmunkClasses () {
 }
 
 if (window.webmunkObserver === undefined) {
+  const finalUpdate = function () {
+    updateWebmunkClasses()
+  }
+
+  let finalTimeout = null
+
   window.webmunkListener = function (mutationsList) {
     let doUpdate = false
 
@@ -460,6 +470,12 @@ if (window.webmunkObserver === undefined) {
           window.webmunkUpdateScheduleId = -1
         }, timeout)
       }
+
+      if (finalTimeout !== null) {
+        window.clearTimeout(finalTimeout)
+      }
+
+      finalTimeout = window.setTimeout(finalUpdate, 2500)
     }
   }
 
