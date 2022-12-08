@@ -77,7 +77,18 @@ const pdkFunction = function () {
 
   pdk.currentlyUploading = false
 
-  pdk.uploadQueuedDataPoints = function (endpoint, serverKey, callback) {
+  pdk.uploadProgressCallback = null
+  pdk.uploadCompleteCallback = null
+
+  pdk.uploadQueuedDataPoints = function (endpoint, serverKey, progressCallback, completeCallback) {
+    if (progressCallback !== null && pdk.uploadProgressCallback === null) {
+      pdk.uploadProgressCallback = progressCallback
+    }
+
+    if (completeCallback !== null && pdk.uploadCompleteCallback === null) {
+      pdk.uploadCompleteCallback = completeCallback
+    }
+
     if (pdk.currentlyUploading) {
       return
     }
@@ -95,14 +106,23 @@ const pdkFunction = function () {
         const pendingItems = request.result
 
         if (pendingItems.length === 0) {
-          callback() // Finished
+          if (pdk.uploadCompleteCallback !== null) {
+            pdk.uploadCompleteCallback() // Finished
+          }
 
           pdk.currentlyUploading = false
+
+          pdk.uploadCompleteCallback = null
+          pdk.uploadProgressCallback = null
         } else {
           const toTransmit = []
           const xmitBundle = []
 
           console.log('[PDK] Remaining data points: ' + pendingItems.length)
+
+          if (pdk.uploadProgressCallback !== undefined && pdk.uploadProgressCallback !== null) {
+            pdk.uploadProgressCallback(pendingItems.length)
+          }
 
           let bundleLength = 0
 
@@ -125,9 +145,12 @@ const pdkFunction = function () {
           console.log('[PDK] Created bundle of size ' + bundleLength + '.')
 
           if (toTransmit.length === 0) {
-            callback()
+            pdk.uploadCompleteCallback()
 
             pdk.currentlyUploading = false
+
+            pdk.uploadCompleteCallback = null
+            pdk.uploadProgressCallback = null
           } else {
             chrome.storage.local.get({ 'pdk-identifier': '' }, function (result) {
               if (result['pdk-identifier'] !== '') {
@@ -135,7 +158,7 @@ const pdkFunction = function () {
                   pdk.updateDataPoints(toTransmit, function () {
                     pdk.currentlyUploading = false
 
-                    pdk.uploadQueuedDataPoints(endpoint, serverKey, callback)
+                    pdk.uploadQueuedDataPoints(endpoint, serverKey, progressCallback, completeCallback)
                   })
                 })
               }

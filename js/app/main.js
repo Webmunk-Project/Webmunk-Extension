@@ -46,7 +46,13 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
 
       $('#extensionTitle').html('Webmunk')
 
-      $('.toolbar-button').hide()
+      $('#actionCssHelp').hide()
+      $('#actionSaveRules').hide()
+      $('#actionReloadRules').hide()
+      $('#actionInspectRules').hide()
+      $('#actionOpenSettings').hide()
+      $('#actionCloseScreen').hide()
+
       $('.main-ui-button').show()
 
       chrome.storage.local.get({ 'pdk-identifier': '' }, function (result) {
@@ -390,6 +396,12 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
 
     let uploading = false
 
+    const uploadDialog = mdc.dialog.MDCDialog.attachTo(document.querySelector('#upload_data_dialog'))
+    uploadDialog.scrimClickAction = ''
+    uploadDialog.escapeKeyAction = ''
+
+    const uploadProgress = mdc.linearProgress.MDCLinearProgress.attachTo(document.querySelector('#upload-data-dialog-progress'))
+
     $('#actionUploadData').click(function (eventObj) {
       eventObj.preventDefault()
 
@@ -402,8 +414,46 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
 
         uploading = true
 
+        let initialPendingItems = -1
+
         chrome.runtime.sendMessage({ content: 'fetch_configuration' }, function (extensionConfig) {
-          pdk.uploadQueuedDataPoints(extensionConfig['upload-url'], extensionConfig.key, function () {
+          pdk.uploadQueuedDataPoints(extensionConfig['upload-url'], extensionConfig.key, function (pendingItems) {
+            let completed = 0
+
+            if (initialPendingItems < 0) {
+              initialPendingItems = pendingItems
+
+              completed = initialPendingItems - pendingItems
+
+              if (completed < 0) {
+                completed = 0
+              }
+
+              $('#upload-data-dialog-message').html(pendingItems + ' of ' + initialPendingItems + ' remaining.')
+
+              uploadProgress.determinate = true
+
+              uploadProgress.progress = completed / initialPendingItems
+
+              uploadProgress.open()
+
+              uploadDialog.open()
+            }
+
+            uploadProgress.determinate = true
+
+            completed = initialPendingItems - pendingItems
+
+            if (completed < 0) {
+              completed = 0
+            }
+
+            uploadProgress.progress = completed / initialPendingItems
+
+            $('#upload-data-dialog-message').html(pendingItems + ' of ' + initialPendingItems + ' remaining.')
+          }, function () {
+            uploadDialog.close()
+
             $('#actionUploadData').text('cloud_upload')
 
             $('#dialog-title').text('Data uploaded')

@@ -242,7 +242,7 @@ const uploadAndRefresh = function (alarm) {
 
     console.log('[Webmunk] Uploading queued data points...')
 
-    window.PDK.uploadQueuedDataPoints(config['upload-url'], config.key, function () {
+    window.PDK.uploadQueuedDataPoints(config['upload-url'], config.key, null, function () {
       chrome.storage.local.set({
         'pdk-last-upload': (new Date().getTime())
       }, function (result) {
