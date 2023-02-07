@@ -3,6 +3,9 @@
 const pdkFunction = function () {
   const pdk = {}
 
+  pdk.queuedPoints = []
+  pdk.lastPersisted = 0
+
   pdk.openDatabase = function (success, failure) {
     if (pdk.db !== undefined) {
       success(pdk.db)
@@ -43,8 +46,43 @@ const pdkFunction = function () {
     }
   }
 
-  pdk.enqueueDataPoint = function (generatorId, dataPoint, complete) {
+  pdk.persistDataPoints = function (complete) {
+    pdk.lastPersisted = Date.now()
+
+    const pendingPoints = pdk.queuedPoints
+
+    pdk.queuedPoints = []
+
     pdk.openDatabase(function (db) {
+      const objectStore = db.transaction(['dataPoints'], 'readwrite').objectStore('dataPoints')
+
+      pendingPoints.forEach(function (point) {
+        const request = objectStore.add(point)
+
+        request.onsuccess = function (event) {
+          // console.log('[PDK] Data point saved successfully: ' + generatorId + '.')
+        }
+
+        request.onerror = function (event) {
+          console.log('[PDK] Data point enqueuing failed: ' + point.generatorId + '.')
+          console.log(event)
+        }
+      })
+
+      console.log('[PDK] Data points saved successfully: ' + pendingPoints.length + '.')
+
+      complete()
+    }, function (error) {
+      if (error) {
+        console.log(error)
+      }
+    })
+  }
+
+  pdk.enqueueDataPoint = function (generatorId, dataPoint, complete) {
+    if (generatorId === null || dataPoint === null) { // eslint-disable-line no-empty
+
+    } else {
       const payload = {
         generatorId: generatorId, // eslint-disable-line object-shorthand
         dataPoint: dataPoint, // eslint-disable-line object-shorthand
@@ -52,27 +90,14 @@ const pdkFunction = function () {
         transmitted: 0
       }
 
-      const request = db.transaction(['dataPoints'], 'readwrite')
-        .objectStore('dataPoints')
-        .put(payload)
+      pdk.queuedPoints.push(payload)
+    }
 
-      request.onsuccess = function (event) {
-        console.log('[PDK] Data point saved successfully: ' + generatorId + '.')
-
-        complete()
-      }
-
-      request.onerror = function (event) {
-        console.log('[PDK] Data point enqueuing failed: ' + generatorId + '.')
-        console.log(event)
-
-        complete()
-      }
-    }, function (error) {
-      if (error) {
-        console.log(error)
-      }
-    })
+    if (pdk.queuedPoints.length > 0 && (Date.now() - pdk.lastPersisted) > 1000) {
+      pdk.persistDataPoints(complete)
+    } else {
+      complete()
+    }
   }
 
   pdk.currentlyUploading = false
@@ -118,15 +143,17 @@ const pdkFunction = function () {
           const toTransmit = []
           const xmitBundle = []
 
-          console.log('[PDK] Remaining data points: ' + pendingItems.length)
+          const pendingRemaining = pendingItems.length
+
+          console.log('[PDK] Remaining data points: ' + pendingRemaining)
 
           if (pdk.uploadProgressCallback !== undefined && pdk.uploadProgressCallback !== null) {
-            pdk.uploadProgressCallback(pendingItems.length)
+            pdk.uploadProgressCallback(pendingRemaining)
           }
 
           let bundleLength = 0
 
-          for (let i = 0; i < pendingItems.length && bundleLength < (4 * 1024 * 1024); i++) {
+          for (let i = 0; i < pendingRemaining && bundleLength < (512 * 1024); i++) {
             const pendingItem = pendingItems[i]
 
             pendingItem.transmitted = new Date().getTime()
@@ -137,10 +164,17 @@ const pdkFunction = function () {
             toTransmit.push(pendingItem)
             xmitBundle.push(pendingItem.dataPoint)
 
-            const bundleString = JSON.stringify(xmitBundle)
+            const bundleString = JSON.stringify(pendingItem.dataPoint)
 
             bundleLength += bundleString.length
           }
+
+          const status = {
+            pending_points: pendingRemaining,
+            generatorId: 'pdk-system-status'
+          }
+
+          xmitBundle.push(status)
 
           console.log('[PDK] Created bundle of size ' + bundleLength + '.')
 
@@ -244,8 +278,8 @@ const pdkFunction = function () {
   pdk.uploadBundle = function (endpoint, serverKey, userId, points, complete) {
     const manifest = chrome.runtime.getManifest()
 
-    const keyPair = nacl.box.keyPair()
-    const serverPublicKey = nacl.util.decodeBase64(serverKey)
+    // const keyPair = nacl.box.keyPair()
+    // const serverPublicKey = nacl.util.decodeBase64(serverKey)
 
     const userAgent = manifest.name + '/' + manifest.version + ' ' + navigator.userAgent
 
@@ -260,12 +294,12 @@ const pdkFunction = function () {
       metadata.generator = points[i].generatorId + ': ' + userAgent
       metadata['generator-id'] = points[i].generatorId
       metadata.timestamp = points[i].date / 1000 // Unix timestamp
-      metadata['generated-key'] = nacl.util.encodeBase64(keyPair.publicKey)
+      // metadata['generated-key'] = nacl.util.encodeBase64(keyPair.publicKey)
       metadata.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
 
       points[i]['passive-data-metadata'] = metadata
 
-      pdk.encryptFields(serverPublicKey, keyPair.secretKey, points[i])
+      // pdk.encryptFields(serverPublicKey, keyPair.secretKey, points[i])
     }
 
     const dataString = JSON.stringify(points, null, 2)

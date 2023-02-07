@@ -4,22 +4,18 @@ function openWindow () {
   const optionsUrl = chrome.runtime.getURL('index.html')
 
   chrome.tabs.query({}, function (extensionTabs) {
-    let found = false
-
     for (let i = 0; i < extensionTabs.length; i++) {
       if (optionsUrl === extensionTabs[i].url) {
-        found = true
+        chrome.windows.remove(extensionTabs[i].windowId)
       }
     }
 
-    if (found === false) {
-      chrome.windows.create({
-        height: 480,
-        width: 640,
-        type: 'panel',
-        url: chrome.runtime.getURL('index.html')
-      })
-    }
+    chrome.windows.create({
+      height: 480,
+      width: 640,
+      type: 'panel',
+      url: chrome.runtime.getURL('index.html')
+    })
   })
 }
 
@@ -159,6 +155,84 @@ function refreshConfiguration (sendResponse) {
   })
 }
 
+const tabStates = {}
+
+function digestMessage (str) {
+  // Via https://stackoverflow.com/questions/6122571/simple-non-secure-hash-function-for-javascript
+
+  let hash = 0
+  for (let i = 0, len = str.length; i < len; i++) {
+    const chr = str.charCodeAt(i)
+    hash = (hash << 5) - hash + chr
+    hash |= 0 // Convert to 32bit integer
+  }
+  return hash
+}
+
+function filterDataPointRequest (dataPoint) {
+  const tabId = dataPoint['tab-id']
+
+  if (tabStates[tabId] === undefined) {
+    tabStates[tabId] = {}
+  }
+
+  if (dataPoint.generator === 'webmunk-extension-matched-rule') {
+    if (tabStates[tabId]['webmunk-extension-matched-rule'] === undefined) {
+      tabStates[tabId]['webmunk-extension-matched-rule'] = {}
+    }
+
+    const matchStates = tabStates[tabId]['webmunk-extension-matched-rule']
+
+    if (matchStates[dataPoint.payload.rule] !== dataPoint.payload.count) {
+      matchStates[dataPoint.payload.rule] = dataPoint.payload.count
+
+      return false
+    }
+
+    return true
+  } else if (dataPoint.generator === 'webmunk-extension-class-added') {
+    if (tabStates[tabId][''] === undefined) {
+      tabStates[tabId]['webmunk-extension-class-added'] = {}
+    }
+
+    const classesAdded = tabStates[tabId]['webmunk-extension-class-added']
+
+    const elementHash = digestMessage(dataPoint.payload['element-content*'] + dataPoint.payload['class-name'])
+
+    if (classesAdded[elementHash] === undefined) {
+      classesAdded[elementHash] = true
+
+      return false
+    }
+
+    return true
+  } else if (dataPoint.generator === 'webmunk-extension-element-show' || dataPoint.generator === 'webmunk-extension-element-hide') {
+    if (tabStates[tabId][''] === undefined) {
+      tabStates[tabId]['webmunk-extension-element-visible'] = {}
+    }
+
+    const visibleState = tabStates[tabId]['webmunk-extension-element-visible']
+
+    const elementId = dataPoint.payload['element-id']
+
+    let visible = true
+
+    if (dataPoint.generator === 'webmunk-extension-element-hide') {
+      visible = false
+    }
+
+    if (visibleState[elementId] !== visible) {
+      visibleState[elementId] = visible
+
+      return false
+    }
+
+    return true
+  }
+
+  return false
+}
+
 const handlerFunctions = {}
 
 function handleMessage (request, sender, sendResponse) {
@@ -170,17 +244,28 @@ function handleMessage (request, sender, sendResponse) {
     })
 
     return true
-  } else if (request.content === 'record_data_point') {
-    console.log('[Webmunk] Recording ' + request.generator + ' data point...')
-
-    request.payload['tab-id'] = sender.tab.id
-
-    window.PDK.enqueueDataPoint(request.generator, request.payload, function () {
+  } else if (request.content === 'nudge_data_points') {
+    window.PDK.enqueueDataPoint(null, null, function () {
       sendResponse({
-        message: 'Data point enqueued successfully: ' + request.generator,
+        message: 'Data points nudged successfully.',
         success: true
       })
     })
+  } else if (request.content === 'record_data_point') {
+    request.payload['tab-id'] = sender.tab.id
+
+    if (filterDataPointRequest(request)) {
+      // Skip
+    } else {
+      // console.log('[Webmunk] Recording ' + request.generator + ' data point...')
+
+      window.PDK.enqueueDataPoint(request.generator, request.payload, function () {
+        sendResponse({
+          message: 'Data point enqueued successfully: ' + request.generator,
+          success: true
+        })
+      })
+    }
 
     return true
   } else if (request.content === 'open_css_help') {
@@ -242,11 +327,14 @@ const uploadAndRefresh = function (alarm) {
 
     console.log('[Webmunk] Uploading queued data points...')
 
-    window.PDK.uploadQueuedDataPoints(config['upload-url'], config.key, null, function () {
-      chrome.storage.local.set({
-        'pdk-last-upload': (new Date().getTime())
-      }, function (result) {
-
+    window.PDK.persistDataPoints(function () {
+      console.log('[Webmunk] Begin upload: ' + (new Date()) + ' -- ' + Date.now())
+      window.PDK.uploadQueuedDataPoints(config['upload-url'], config.key, null, function () {
+        chrome.storage.local.set({
+          'pdk-last-upload': (new Date().getTime())
+        }, function (result) {
+          console.log('[Webmunk] End upload: ' + (new Date()) + ' -- ' + Date.now())
+        })
       })
     })
   })
