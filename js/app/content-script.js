@@ -480,12 +480,12 @@ if (window.webmunkObserver === undefined) {
   }
 
   const nudgeDataPoints = function () {
-	  chrome.runtime.sendMessage({
+    chrome.runtime.sendMessage({
       content: 'nudge_data_points'
-	  }, function (message) {
-	  	console.log('[Webmunk] ' + window.location.href + ': Nudged data points')
-	  	console.log(message)
-	  })
+    }, function (message) {
+      console.log('[Webmunk] ' + window.location.href + ': Nudged data points')
+      console.log(message)
+    })
   }
 
   window.setTimeout(nudgeDataPoints, 1000)
