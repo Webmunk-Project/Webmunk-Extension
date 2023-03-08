@@ -157,6 +157,7 @@ function updateWebmunkClasses () {
                 content: 'record_data_point',
                 generator: 'webmunk-extension-matched-rule',
                 payload: {
+                  'page-id': window.webmunkPageId,
                   rule: rule.match,
                   count: matches.length,
                   'url*': window.location.href,
@@ -196,6 +197,7 @@ function updateWebmunkClasses () {
             content: 'record_data_point',
             generator: 'webmunk-extension-class-added',
             payload: {
+              'page-id': window.webmunkPageId,
               'class-name': className,
               'url*': window.location.href,
               'page-title*': document.title,
@@ -249,6 +251,7 @@ function updateWebmunkClasses () {
                         console.log('[Webmunk] log-visible')
 
                         const payload = {
+                          'page-id': window.webmunkPageId,
                           'element-id': webmunkId,
                           'element-class': cssClass,
                           'url*': window.location.href,
@@ -281,6 +284,7 @@ function updateWebmunkClasses () {
                         console.log('[Webmunk] log-hidden')
 
                         const payload = {
+                          'page-id': window.webmunkPageId,
                           'element-id': webmunkId,
                           'element-class': cssClass,
                           'url*': window.location.href,
@@ -316,6 +320,7 @@ function updateWebmunkClasses () {
               actions.forEach(function (action) {
                 if (action === 'log-scroll') {
                   const payload = {
+                    'page-id': window.webmunkPageId,
                     'url*': window.location.href,
                     'page-title*': document.title,
                     top: $(window).scrollTop(),
@@ -398,6 +403,7 @@ function updateWebmunkClasses () {
                       content: 'record_data_point',
                       generator: 'webmunk-extension-element-click',
                       payload: {
+                        'page-id': window.webmunkPageId,
                         'element-id': webmunkId,
                         'element-class': cssClass,
                         'url*': window.location.href,
@@ -586,6 +592,7 @@ chrome.runtime.sendMessage({ content: 'fetch_configuration' }, function (message
             })
 
             const payload = {
+              'page-id': window.webmunkPageId,
               'pattern-matches': matchedElements,
               'url*': window.location.href,
               'page-title*': document.title,
