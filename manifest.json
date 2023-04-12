@@ -12,7 +12,7 @@
   "background": {
     "service_worker": "js/app/background_loader.js"
   },
-  "version": "0.23",
+  "version": "0.24",
   "manifest_version": 3,
   "action": {
     "default_icon": {
