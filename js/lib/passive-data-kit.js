@@ -174,30 +174,46 @@ const pdkFunction = function () {
             generatorId: 'pdk-system-status'
           }
 
-          xmitBundle.push(status)
+          chrome.system.cpu.getInfo(function (cpuInfo) {
+            status['cpu-info'] = cpuInfo
 
-          console.log('[PDK] Created bundle of size ' + bundleLength + '.')
+            chrome.system.display.getInfo(function (displayUnitInfo) {
+              status['display-info'] = displayUnitInfo
 
-          if (toTransmit.length === 0) {
-            pdk.uploadCompleteCallback()
+              chrome.system.memory.getInfo(function (memoryInfo) {
+                status['memory-info'] = memoryInfo
 
-            pdk.currentlyUploading = false
+                chrome.system.storage.getInfo(function (storageUnitInfo) {
+                  status['storage-info'] = storageUnitInfo
 
-            pdk.uploadCompleteCallback = null
-            pdk.uploadProgressCallback = null
-          } else {
-            chrome.storage.local.get({ 'pdk-identifier': '' }, function (result) {
-              if (result['pdk-identifier'] !== '') {
-                pdk.uploadBundle(endpoint, serverKey, result['pdk-identifier'], xmitBundle, function () {
-                  pdk.updateDataPoints(toTransmit, function () {
+                  xmitBundle.push(status)
+
+                  console.log('[PDK] Created bundle of size ' + bundleLength + '.')
+
+                  if (toTransmit.length === 0) {
+                    pdk.uploadCompleteCallback()
+
                     pdk.currentlyUploading = false
 
-                    pdk.uploadQueuedDataPoints(endpoint, serverKey, progressCallback, completeCallback)
-                  })
+                    pdk.uploadCompleteCallback = null
+                    pdk.uploadProgressCallback = null
+                  } else {
+                    chrome.storage.local.get({ 'pdk-identifier': '' }, function (result) {
+                      if (result['pdk-identifier'] !== '') {
+                        pdk.uploadBundle(endpoint, serverKey, result['pdk-identifier'], xmitBundle, function () {
+                          pdk.updateDataPoints(toTransmit, function () {
+                            pdk.currentlyUploading = false
+
+                            pdk.uploadQueuedDataPoints(endpoint, serverKey, progressCallback, completeCallback)
+                          })
+                        })
+                      }
+                    })
+                  }
                 })
-              }
+              })
             })
-          }
+          })
         }
       }
 
