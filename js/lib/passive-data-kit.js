@@ -153,7 +153,7 @@ const pdkFunction = function () {
 
           let bundleLength = 0
 
-          for (let i = 0; i < pendingRemaining && bundleLength < (256 * 1024); i++) {
+          for (let i = 0; i < pendingRemaining && bundleLength < (128 * 1024); i++) {
             const pendingItem = pendingItems[i]
 
             pendingItem.transmitted = new Date().getTime()

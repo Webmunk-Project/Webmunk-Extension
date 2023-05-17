@@ -10,3 +10,6 @@
 [submodule "modules/amazon"]
 	path = modules/amazon
 	url = https://github.com/audacious-software/Webmunk-Amazon-Module.git
+[submodule "modules/amazon_fetch"]
+	path = modules/amazon-fetch
+	url = https://github.com/audacious-software/Webmuk-Amazon-Fetch-Module.git

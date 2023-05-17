@@ -1,6 +1,6 @@
 {
-  "name": "Webmunk",
-  "short_name": "Webmunk",
+  "name": "Study Browser Extension",
+  "short_name": "Study Browser Extension",
   "icons": {
       "256": "images/icon-256.png",
       "128": "images/icon-128.png",
@@ -12,7 +12,7 @@
   "background": {
     "service_worker": "js/app/background_loader.js"
   },
-  "version": "0.25",
+  "version": "0.29",
   "manifest_version": 3,
   "action": {
     "default_icon": {
@@ -37,6 +37,7 @@
     "<all_urls>"
   ],
   "modules": [
-    "modules/amazon"
+    "modules/amazon",
+    "modules/amazon-fetch"
   ]
 }

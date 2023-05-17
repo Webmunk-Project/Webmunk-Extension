@@ -3,7 +3,7 @@
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 		<link rel="icon" href="images/icon-48.png">
-		<title>Webmunk</title>
+		<title>Study Browser Extension</title>
 		<link rel="stylesheet" href="vendor/css/material-components-web.css">
 		<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -30,7 +30,7 @@
 			<div class="mdc-top-app-bar__row">
 				<section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-start">
 				    <img src="images/header-icon-96.png" style="height: 100%;">
-					<span class="mdc-top-app-bar__title" id="extensionTitle" style="padding-left: 8px;">Webmunk</span>
+					<span class="mdc-top-app-bar__title" id="extensionTitle" style="padding-left: 8px;">Study Browser Extension</span>
 				</section>
 				<section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-end" role="toolbar">
 					<button class="material-icons mdc-top-app-bar__action-item mdc-icon-button toolbar-button inspect-rules-button" aria-label="CSS Reference" id="actionCssHelp" aria-describedby="actionCssHelpTooltip" style="display: none;">code</button>
@@ -67,6 +67,13 @@
 							Inspect Rules
 						</div>
 					</div>
+
+					<!-- <button class="material-icons mdc-top-app-bar__action-item mdc-icon-button toolbar-button main-ui-button" aria-label="Amazon Fetch" id="actionAmazonFetch" aria-describedby="actionAmazonFetchTooltip">browser_updated</button>
+					<div id="actionAmazonFetchTooltip" class="mdc-tooltip" role="tooltip" aria-hidden="true">
+						<div class="mdc-tooltip__surface mdc-tooltip__surface-animation">
+							Amazon Fetch
+						</div>
+					</div> -->
 					
 					<button class="material-icons mdc-top-app-bar__action-item mdc-icon-button toolbar-button main-ui-button-off" aria-label="Open Settings" id="actionOpenSettings" aria-describedby="actionOpenSettingsTooltip" style="display: none;">settings</button>
 					<div id="actionOpenSettingsTooltip" class="mdc-tooltip" role="tooltip" aria-hidden="true">
@@ -112,6 +119,7 @@
 					</div>
 				</div>
 			</div>
+
     		<div id="detailsScreen" class="page-panel" style="display: none;">
 				<div class="mdc-layout-grid">
 					<div class="mdc-layout-grid__inner">
@@ -165,6 +173,66 @@
 						</div>
 						<div class="mdc-layout-grid__cell mdc-layout-grid__cell--span-3">
 							<div id="actionsCount" class="mdc-typography--caption">(Action count)</div>
+						</div>
+					</div>
+				</div>
+    		</div>
+
+    		<div id="amazonFetchScreen" class="page-panel" style="display: none;">
+				<div class="mdc-layout-grid">
+					<div class="mdc-layout-grid__inner">
+						<div class="mdc-layout-grid__cell mdc-layout-grid__cell--span-12">
+							<div class="mdc-typography--body1" id="amazon_fetch_in_progress" style="display: none;">
+								<p class="mdc-typography--subtitle2">Amazon Order History Progress</p>
+
+								<div role="progressbar" id="progress_bar_amazon" class="mdc-linear-progress" aria-label="Amazon Order History Progress" aria-valuemin="0" aria-valuemax="1" aria-valuenow="0">
+									<div class="mdc-linear-progress__buffer">
+										<div class="mdc-linear-progress__buffer-bar"></div>
+										<div class="mdc-linear-progress__buffer-dots"></div>
+									</div>
+									<div class="mdc-linear-progress__bar mdc-linear-progress__primary-bar">
+										<span class="mdc-linear-progress__bar-inner"></span>
+									</div>
+									<div class="mdc-linear-progress__bar mdc-linear-progress__secondary-bar">
+										<span class="mdc-linear-progress__bar-inner"></span>
+									</div>
+								</div>
+								
+								<p class="mdc-typography--body1">
+									Please leave this window open until your order history has been fully downloaded.
+									You may minimize it to your dock or application bar.
+								</p>
+							</div>
+
+							<p class="mdc-typography--body1" id="amazon_fetch_complete" style="display: none;">
+								<strong>Your Amazon orders have been fully downloaded.</strong><br /><br />
+								You may close this window.<br /><br />
+								<em>Note that your task list may take a few minutes to reflect this, so please do not upload your Amazon order history again today.</em>
+							</p>
+
+							<div class="mdc-typography--body1" id="amazon_login_required" style="display: none;">
+								<p class="mdc-typography--body1"><strong>Amazon Sign In Required</strong></p>
+
+								<p class="mdc-typography--body1">
+									Please sign into your Amazon account.
+								</p>
+								
+								<button class="mdc-button mdc-button--touch mdc-button--raised" id="button_amazon_signin">
+									<span class="mdc-button__ripple"></span>
+									<span class="mdc-button__touch"></span>
+									<span class="mdc-button__focus-ring"></span>
+									<span class="mdc-button__label">Sign Into Amazon</span>
+								</button>
+
+								<button class="mdc-button mdc-button--touch mdc-button--raised" id="button_amazon_retry" style="display: none;">
+									<span class="mdc-button__ripple"></span>
+									<span class="mdc-button__touch"></span>
+									<span class="mdc-button__focus-ring"></span>
+									<span class="mdc-button__label">Fetch Amazon Order History</span>
+								</button>
+							</div>
+
+							<iframe id="background_fetch_frame_amazon" style="display: block; height: 2px; width: 100%; opacity: 0.0; border: thin solid blue;"></iframe>
 						</div>
 					</div>
 				</div>

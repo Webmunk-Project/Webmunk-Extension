@@ -13,6 +13,12 @@ window.registerModuleCallback = function (callback) {
   window.webmunkModuleCallbacks.push(callback)
 }
 
+window.webmunkPageChangeListeners = []
+
+window.registerModulePageChangeListener = function (listener) {
+  window.webmunkPageChangeListeners.push(listener)
+}; // eslint-disable-line semi, no-trailing-spaces
+
 // LOAD CONTENT MODULES
 
 function uuidv4 () {
@@ -117,7 +123,7 @@ function locationFilterMatches (location, filters) {
 }
 
 function updateWebmunkClasses () {
-  if (window.webmunkLoading || window.webmunkRules === undefined) {
+  if (window.webmunkLoading || window.webmunkRules === undefined || window.location !== window.location.parent) {
     return
   }
 
@@ -472,6 +478,10 @@ if (window.webmunkObserver === undefined) {
       if (window.webmunkUpdateScheduleId === -1) {
         window.webmunkUpdateScheduleId = window.setTimeout(function () {
           updateWebmunkClasses()
+
+          for (const listener of window.webmunkPageChangeListeners) {
+            listener()
+          }
 
           window.webmunkUpdateScheduleId = -1
         }, timeout)

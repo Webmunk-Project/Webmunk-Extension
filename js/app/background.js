@@ -291,8 +291,6 @@ function handleMessage (request, sender, sendResponse) {
   } else {
     const handlerFunction = handlerFunctions[request.content]
 
-    console.log('[Webmunk] Fetching handler for ' + request.content + '...')
-
     if (handlerFunction !== undefined) {
       return handlerFunction(request, sender, sendResponse)
     }
@@ -321,6 +319,38 @@ chrome.alarms.create('pdk-upload', { periodInMinutes: 5 })
 
 const uploadAndRefresh = function (alarm) {
   console.log('[Webmunk] Uploading data and refreshing configuration...')
+
+  const now = Date.now()
+
+  chrome.storage.local.get({ 'webmunk-first-refresh': now }, function (result) {
+    if (now - result['webmunk-first-refresh'] < 30 * 60 * 1000) {
+      chrome.alarms.get('pdk-upload', function (alarm) {
+        if (alarm.periodInMinutes !== 1) {
+          chrome.alarms.clear('pdk-upload', function (cleared) {
+            console.log('[Webmunk] Checking and uploading more frequently...')
+            chrome.alarms.create('pdk-upload', { periodInMinutes: 1 })
+          })
+        }
+      })
+    } else {
+      chrome.alarms.get('pdk-upload', function (alarm) {
+        if (alarm.periodInMinutes !== 5) {
+          chrome.alarms.clear('pdk-upload', function (cleared) {
+            console.log('[Webmunk] Checking and uploading on the regular schedule...')
+            chrome.alarms.create('pdk-upload', { periodInMinutes: 5 })
+          })
+        }
+      })
+    }
+
+    if (now === result['webmunk-first-refresh']) {
+      chrome.storage.local.set({
+        'webmunk-first-refresh': now
+      }, function (result) {
+        console.log('[Webmunk] Stored first refresh: ' + now)
+      })
+    }
+  })
 
   chrome.storage.local.get({ 'webmunk-config': null }, function (result) {
     config = result['webmunk-config']
