@@ -183,11 +183,36 @@ const pdkFunction = function () {
               chrome.system.memory.getInfo(function (memoryInfo) {
                 status['memory-info'] = memoryInfo
 
-                chrome.system.storage.getInfo(function (storageUnitInfo) {
-                  status['storage-info'] = storageUnitInfo
+                if (chrome.system.storage !== undefined) {
+                  chrome.system.storage.getInfo(function (storageUnitInfo) {
+                    status['storage-info'] = storageUnitInfo
 
-                  xmitBundle.push(status)
+                    xmitBundle.push(status)
 
+                    console.log('[PDK] Created bundle of size ' + bundleLength + '.')
+
+                    if (toTransmit.length === 0) {
+                      pdk.uploadCompleteCallback()
+
+                      pdk.currentlyUploading = false
+
+                      pdk.uploadCompleteCallback = null
+                      pdk.uploadProgressCallback = null
+                    } else {
+                      chrome.storage.local.get({ 'pdk-identifier': '' }, function (result) {
+                        if (result['pdk-identifier'] !== '') {
+                          pdk.uploadBundle(endpoint, serverKey, result['pdk-identifier'], xmitBundle, function () {
+                            pdk.updateDataPoints(toTransmit, function () {
+                              pdk.currentlyUploading = false
+
+                              pdk.uploadQueuedDataPoints(endpoint, serverKey, progressCallback, completeCallback)
+                            })
+                          })
+                        }
+                      })
+                    }
+                  })
+                } else {
                   console.log('[PDK] Created bundle of size ' + bundleLength + '.')
 
                   if (toTransmit.length === 0) {
@@ -210,7 +235,7 @@ const pdkFunction = function () {
                       }
                     })
                   }
-                })
+                }
               })
             })
           })

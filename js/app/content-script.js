@@ -57,8 +57,26 @@ $.expr.pseudos.webmunkRandomMirror = $.expr.createPseudo(function (parameters) {
 })
 
 $.expr.pseudos.webmunkContainsInsensitive = $.expr.createPseudo(function (query) {
+  const queryUpper = query.toUpperCase()
+
   return function (elem) {
-    return $(elem).text().toUpperCase().indexOf(query.toUpperCase()) >= 0
+    return $(elem).text().toUpperCase().includes(queryUpper)
+  }
+})
+
+$.expr.pseudos.webmunkContainsInsensitiveAny = $.expr.createPseudo(function (queryItems) {
+  queryItems = JSON.parse(queryItems)
+
+  return function (elem) {
+    for (const queryItem of queryItems) {
+      const queryUpper = queryItem.toUpperCase()
+
+      if ($(elem).text().toUpperCase().includes(queryUpper)) {
+        return true
+      }
+    }
+
+    return false
   }
 })
 
@@ -123,7 +141,7 @@ function locationFilterMatches (location, filters) {
 }
 
 function updateWebmunkClasses () {
-  if (window.webmunkLoading || window.webmunkRules === undefined || window.location !== window.location.parent) {
+  if (window.webmunkLoading || window.webmunkRules === undefined || (window.location.parent !== undefined && window.location !== window.location.parent)) {
     return
   }
 
@@ -133,21 +151,21 @@ function updateWebmunkClasses () {
     // Evaluate sites to include.
 
     if (locationFilterMatches(window.location, window.webmunkRules.filters)) {
+      // console.log('[Webmunk] Applying rules: ' + window.webmunkRules + ' -- ' + (new Date()) + ' -- ' + window.location)
+
       const addedClasses = []
 
       const lastRuleMatches = {}
 
-      console.log('[Webmunk] Apply rules...')
-
       window.webmunkRules.rules.forEach(function (rule) {
         if (rule.match !== undefined) {
+          // const start = Date.now()
+
           const matches = $(document).find(rule.match)
 
           if (matches.length > 0) {
-            console.log('[Webmunk] matches[' + rule.match + ']: ' + matches.length + ' (' + window.webmunkPageId + ')')
-          }
+            console.log('[Webmunk] matches[' + rule.match + ']: ' + matches.length)
 
-          if (matches.length > 0) {
             const matchKey = 'rule.match__' + rule.match + '__' + window.location.href + '__' + window.location.href
 
             if (lastRuleMatches[matchKey] === undefined) {
@@ -156,8 +174,6 @@ function updateWebmunkClasses () {
 
             if (matches.length > lastRuleMatches[matchKey]) {
               lastRuleMatches[matchKey] = matches.length
-
-              console.log('[Webmunk] Match key: ' + matchKey + ': ' + matches.length)
 
               chrome.runtime.sendMessage({
                 content: 'record_data_point',
@@ -192,10 +208,12 @@ function updateWebmunkClasses () {
               }
             })
           }
+
+          // const now = Date.now()
+
+          // console.log('[Webmunk] Rule time: ' + (now - start) + ' -- ' + matches.length + ' -- ' + rule.match)
         }
       })
-
-      console.log('[Webmunk] Applied rules.')
 
       addedClasses.forEach(function (className) {
         $(document).find('.' + className + ':not(.webmunk-class-member-logged-' + className + ')').each(function (index, element) {
@@ -254,8 +272,6 @@ function updateWebmunkClasses () {
 
                     actions.forEach(function (action) {
                       if (action === 'log-visible') {
-                        console.log('[Webmunk] log-visible')
-
                         const payload = {
                           'page-id': window.webmunkPageId,
                           'element-id': webmunkId,
@@ -287,8 +303,6 @@ function updateWebmunkClasses () {
 
                     actions.forEach(function (action) {
                       if (action === 'log-hidden') {
-                        console.log('[Webmunk] log-hidden')
-
                         const payload = {
                           'page-id': window.webmunkPageId,
                           'element-id': webmunkId,
@@ -628,3 +642,5 @@ chrome.runtime.sendMessage({ content: 'fetch_configuration' }, function (message
 
   updateWebmunkClasses()
 })
+
+window.setTimeout(updateWebmunkClasses, 100)
