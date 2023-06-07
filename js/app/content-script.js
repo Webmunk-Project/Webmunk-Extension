@@ -33,16 +33,37 @@ $.expr.pseudos.webmunkRandomMirror = $.expr.createPseudo(function (parameters) {
   const paramTokens = parameters.split(' ')
 
   const toMatch = $(paramTokens[0])
-  let tagged = $(paramTokens[1] + '[data-webmunk-mirror="' + paramTokens[0] + '"]')
-  let toTag = $(paramTokens[1] + ':not([data-webmunk-mirror="' + paramTokens[0] + '"])')
+
+  let taggedSelector = ''
+  let toTagSelector = ''
+
+  for (let i = 1; i < paramTokens.length; i++) {
+    if (taggedSelector !== '') {
+      taggedSelector += ','
+    }
+
+    taggedSelector += paramTokens[i] + '[data-webmunk-mirror="' + paramTokens[0] + '"]:webmunkWithinPage'
+
+    if (toTagSelector !== '') {
+      toTagSelector += ','
+    }
+
+    toTagSelector += paramTokens[i] + ':not([data-webmunk-mirror="' + paramTokens[0] + '"]):webmunkWithinPage'
+  }
+
+  console.log('taggedSelector: ' + taggedSelector)
+  console.log('toTagSelector: ' + toTagSelector)
+
+  let tagged = $(taggedSelector)
+  let toTag = $(toTagSelector)
 
   while (toMatch.length > tagged.length && toTag.length > 0) {
     const randomIndex = Math.floor(Math.random() * toTag.length)
 
     $(toTag.get(randomIndex)).attr('data-webmunk-mirror', paramTokens[0])
 
-    tagged = $(paramTokens[1] + '[data-webmunk-mirror="' + paramTokens[0] + '"]')
-    toTag = $(paramTokens[1] + ':not([data-webmunk-mirror="' + paramTokens[0] + '"])')
+    tagged = $(taggedSelector)
+    toTag = $(toTagSelector)
   }
 
   return function (elem) {
@@ -77,6 +98,53 @@ $.expr.pseudos.webmunkContainsInsensitiveAny = $.expr.createPseudo(function (que
     }
 
     return false
+  }
+})
+
+$.expr.pseudos.webmunkImageAltTagContainsInsensitiveAny = $.expr.createPseudo(function (queryItems) {
+  queryItems = JSON.parse(queryItems)
+
+  return function (elem) {
+    for (const queryItem of queryItems) {
+      const queryUpper = queryItem.toUpperCase()
+
+      const altText = $(elem).attr('alt')
+
+      if (altText !== undefined && altText !== null) {
+        if (altText.toUpperCase().includes(queryUpper)) {
+          return true
+        }
+      }
+    }
+
+    return false
+  }
+})
+
+$.expr.pseudos.webmunkWithinPage = $.expr.createPseudo(function () {
+  const width = Math.max(document.body.scrollWidth, document.documentElement.scrollWidth, document.body.offsetWidth, document.documentElement.offsetWidth, document.documentElement.clientWidth)
+  const height = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, document.body.offsetHeight, document.documentElement.offsetHeight, document.documentElement.clientHeight)
+
+  return function (elem) {
+    const position = elem.getBoundingClientRect()
+
+    if (position.x > width) {
+      return false
+    }
+
+    if (position.y > height) {
+      return false
+    }
+
+    if ((position.x + position.width) < 0) {
+      return false
+    }
+
+    if ((position.y + position.height) < 0) {
+      return false
+    }
+
+    return true
   }
 })
 
