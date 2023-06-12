@@ -258,6 +258,7 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
       })
 
       const toQueue = [
+        'https://www.amazon.com/gp/your-account/order-history/?orderFilter=year-2023',
         'https://www.amazon.com/gp/your-account/order-history/?orderFilter=year-2022'
       ]
 
