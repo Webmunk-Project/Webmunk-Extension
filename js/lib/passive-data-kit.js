@@ -1,7 +1,13 @@
-/* global chrome, indexedDB, fetch, nacl */
+/* global chrome, indexedDB, fetch, nacl, CompressionStream */
 
 const pdkFunction = function () {
   const pdk = {}
+
+  const blobToB64 = function (data) {
+    return btoa(new Uint8Array(data).reduce((data, byte) =>
+      data + String.fromCharCode(byte),
+    ''))
+  }
 
   pdk.queuedPoints = []
   pdk.lastPersisted = 0
@@ -213,6 +219,8 @@ const pdkFunction = function () {
                     }
                   })
                 } else {
+                  xmitBundle.push(status)
+
                   console.log('[PDK] Created bundle of size ' + bundleLength + '.')
 
                   if (toTransmit.length === 0) {
@@ -345,23 +353,62 @@ const pdkFunction = function () {
 
     const dataString = JSON.stringify(points, null, 2)
 
+    /*
     fetch(endpoint, {
-      method: 'CREATE',
+      method: 'POST',
       mode: 'cors', // no-cors, *cors, same-origin
       cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/x-www-form-urlencoded'
       },
       redirect: 'follow', // manual, *follow, error
       referrerPolicy: 'no-referrer', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
-      body: dataString // body data type must match "Content-Type" header
-    })
+      body: new URLSearchParams({
+        'payload': dataString
+      })
+    }) // body data type must match "Content-Type" header
       .then(response => response.json())
       .then(function (data) {
         complete()
       })
       .catch((error) => {
         console.error('Error:', error)
+      })
+    */
+
+    const byteArray = new TextEncoder().encode(dataString)
+    const cs = new CompressionStream('gzip')
+    const writer = cs.writable.getWriter()
+    writer.write(byteArray)
+    writer.close()
+
+    const compressedResponse = new Response(cs.readable)
+
+    compressedResponse.arrayBuffer()
+      .then(function (buffer) {
+        const compressedBase64 = blobToB64(buffer)
+
+        fetch(endpoint, {
+          method: 'POST',
+          mode: 'cors', // no-cors, *cors, same-origin
+          cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          redirect: 'follow', // manual, *follow, error
+          referrerPolicy: 'no-referrer', // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
+          body: new URLSearchParams({
+            compression: 'gzip',
+            payload: compressedBase64
+          })
+        }) // body data type must match "Content-Type" header
+          .then(response => response.json())
+          .then(function (data) {
+            complete()
+          })
+          .catch((error) => {
+            console.error('Error:', error)
+          })
       })
   }
 

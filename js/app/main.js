@@ -114,7 +114,7 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
               if (href.toLowerCase() === 'https://extension.webmunk.org/amazon-fetch') {
                 eventObj.preventDefault()
 
-                pdk.enqueueDataPoint('cookie-manager-extension-action', {
+                pdk.enqueueDataPoint('webmunk-extension-action', {
                   action: 'open-amazon-fetch'
                 }, function () {})
 
@@ -192,6 +192,8 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
               $('#amazon_fetch_in_progress').show()
               $('#amazon_fetch_complete').hide()
               $('#amazon_login_required').hide()
+              $('#amazon_upload_complete').hide()
+              $('#amazon_fetch_error').hide()
 
               const progress = request.queueSize - request.remaining
 
@@ -199,28 +201,80 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
 
               if (request.queueSize > 0 && request.remaining === 0) {
                 $('#amazon_fetch_in_progress').hide()
-                $('#amazon_fetch_complete').show()
                 $('#amazon_login_required').hide()
+                $('#amazon_upload_complete').hide()
+                $('#amazon_fetch_complete').show()
 
-                chrome.storage.local.get({ 'pdk-identifier': '' }, function (result) {
-                  if (result['pdk-identifier'] !== '') {
-                    $.get(config.amazonDataFetchedUrl, {
-                      identifier: result['pdk-identifier']
+                let initialPendingItems = -1
+
+                chrome.runtime.sendMessage({ content: 'fetch_configuration' }, function (extensionConfig) {
+                  pdk.uploadQueuedDataPoints(extensionConfig['upload-url'], extensionConfig.key, function (pendingItems) {
+                    let completed = 0
+
+                    if (initialPendingItems < 0) {
+                      initialPendingItems = pendingItems
+
+                      completed = initialPendingItems - pendingItems
+
+                      if (completed < 0) {
+                        completed = 0
+                      }
+
+                      $('#upload-data-dialog-message').html('<em>Do not close this window until the upload is complete.</em>')
+                      $('#upload-data-dialog-message').show()
+
+                      uploadProgress.determinate = true
+
+                      uploadProgress.progress = completed / initialPendingItems
+
+                      uploadProgress.open()
+
+                      uploadDialog.open()
+                    }
+
+                    uploadProgress.determinate = true
+
+                    completed = initialPendingItems - pendingItems
+
+                    if (completed < 0) {
+                      completed = 0
+                    }
+
+                    uploadProgress.progress = completed / initialPendingItems
+
+                    $('#upload-data-dialog-message').html('<em>Do not close this window until the upload is complete.</em>')
+                    $('#upload-data-dialog-message').show()
+                  }, function () {
+                    uploadDialog.close()
+
+                    chrome.storage.local.set({
+                      'pdk-last-upload': (new Date().getTime())
+                    }, function (result) {
+                      $('#amazon_fetch_complete').hide()
+                      $('#amazon_upload_complete').show()
+
+                      chrome.storage.local.get({ 'pdk-identifier': '' }, function (result) {
+                        if (result['pdk-identifier'] !== '') {
+                          $.get(config.amazonDataFetchedUrl, {
+                            identifier: result['pdk-identifier']
+                          })
+                        }
+                      })
+
+                      $('#actionCloseScreen').show()
                     })
-                  }
+                  })
                 })
-
-                $('#actionCloseScreen').show()
               }
             }
           } else if (request.content === 'amazon_sign_in_required') {
             $('#amazon_fetch_in_progress').hide()
             $('#amazon_fetch_complete').hide()
+            $('#amazon_upload_complete').hide()
+            $('#amazon_fetch_error').hide()
             $('#amazon_login_required').show()
 
             chrome.storage.local.get({ 'webmunk-amazon-login': 0 }, function (result) {
-              console.log('TEST: ' + now + ' - ' + result['webmunk-amazon-login'] + ' (' + (now - result['webmunk-amazon-login']) + ') <? ' + (15 * 60 * 1000))
-
               if (now - result['webmunk-amazon-login'] > 5 * 60 * 1000) {
                 $('#button_amazon_signin').show()
                 $('#button_amazon_retry').hide()
@@ -253,6 +307,25 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
                 displayAmazonUi()
               })
             })
+          } else if (request.content === 'amazon_fetch_error') {
+            $('#amazon_fetch_in_progress').hide()
+            $('#amazon_fetch_complete').hide()
+            $('#amazon_login_required').hide()
+            $('#amazon_upload_complete').hide()
+            $('#amazon_fetch_error').show()
+
+            amazonProgress.progress = 0
+
+            $('#amazon_error_text').text(request.error)
+
+            $('#button_amazon_restart').off('click')
+            $('#button_amazon_restart').click(function () {
+              chrome.runtime.sendMessage({
+                content: 'amazon_clear_queue'
+              }, function (message) {
+                displayAmazonUi()
+              })
+            })
           }
         }
       })
@@ -273,7 +346,7 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
 
       $('#background_fetch_frame_amazon').attr('src', 'https://www.amazon.com/gp/your-account/order-history/?orderFilter=year-2023')
 
-      pdk.enqueueDataPoint('cookie-manager-extension-action', {
+      pdk.enqueueDataPoint('webmunk-extension-action', {
         action: 'show-amazon-fetch'
       }, function () {})
     }
@@ -291,8 +364,12 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
       let identifierValidated = false
       let identifier = null
 
+      $('#submitIdentifier').off('click')
       $('#submitIdentifier').click(function (eventObj) {
         eventObj.preventDefault()
+
+        $('#submitIdentifier').attr('disabled', true)
+
         identifier = $('#identifier').val()
 
         home.validateIdentifier(identifier, function (title, message, newIdentifier, data) {
@@ -307,12 +384,16 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
             'webmunk-config': data.rules
           }, function (result) {
             dialog.open()
+
+            $('#submitIdentifier').removeAttr('disabled')
           })
         }, function (title, message) {
           $('#dialog-title').text(title)
           $('#dialog-content').text(message)
 
           dialog.open()
+
+          $('#submitIdentifier').removeAttr('disabled')
 
           identifierValidated = false
         })
@@ -528,7 +609,7 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
 
       eventObj.preventDefault()
 
-      pdk.enqueueDataPoint('cookie-manager-extension-action', {
+      pdk.enqueueDataPoint('webmunk-extension-action', {
         action: 'open-amazon-fetch'
       }, function () {})
 

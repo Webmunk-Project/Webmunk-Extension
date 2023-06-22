@@ -360,19 +360,31 @@ const uploadAndRefresh = function (alarm) {
     window.PDK.persistDataPoints(function () {
       console.log('[Webmunk] Begin upload: ' + (new Date()) + ' -- ' + Date.now())
 
-      const tasksPayload = {
-        'pending-tasks': config.tasks
-      }
+      if (config !== null) {
+        if (config.tasks !== null) {
+          const tasksPayload = {
+            'pending-tasks': config.tasks
+          }
 
-      window.PDK.enqueueDataPoint('webmunk-local-tasks', tasksPayload, function () {
-        window.PDK.uploadQueuedDataPoints(config['upload-url'], config.key, null, function () {
-          chrome.storage.local.set({
-            'pdk-last-upload': (new Date().getTime())
-          }, function (result) {
-            console.log('[Webmunk] End upload: ' + (new Date()) + ' -- ' + Date.now())
+          window.PDK.enqueueDataPoint('webmunk-local-tasks', tasksPayload, function () {
+            window.PDK.uploadQueuedDataPoints(config['upload-url'], config.key, null, function () {
+              chrome.storage.local.set({
+                'pdk-last-upload': (new Date().getTime())
+              }, function (result) {
+                console.log('[Webmunk] End upload: ' + (new Date()) + ' -- ' + Date.now())
+              })
+            })
           })
-        })
-      })
+        } else {
+          window.PDK.uploadQueuedDataPoints(config['upload-url'], config.key, null, function () {
+            chrome.storage.local.set({
+              'pdk-last-upload': (new Date().getTime())
+            }, function (result) {
+              console.log('[Webmunk] End upload: ' + (new Date()) + ' -- ' + Date.now())
+            })
+          })
+        }
+      }
     })
   })
 

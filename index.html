@@ -205,9 +205,16 @@
 							</div>
 
 							<p class="mdc-typography--body1" id="amazon_fetch_complete" style="display: none;">
-								<strong>Your Amazon orders have been fully downloaded.</strong><br /><br />
-								You may close this window.<br /><br />
-								<em>Note that your task list may take a few minutes to reflect this, so please do not upload your Amazon order history again today.</em>
+								<strong>Your Amazon orders have been downloaded.</strong><br /><br />
+								The extension is now processing your orders.<br /><br />
+								Do not close this window until the upload is complete. 
+								You may minimize this window and use your computer for other tasks while the upload is in progress.
+							</p>
+
+							<p class="mdc-typography--body1" id="amazon_upload_complete" style="display: none;">
+								<strong>Your Amazon orders have been fully processed.</strong><br /><br />
+								<em>Your task list may take a few minutes to update, so please do not upload your Amazon order history again today.</em><br /><br />
+								You may close this window.
 							</p>
 
 							<div class="mdc-typography--body1" id="amazon_login_required" style="display: none;">
@@ -231,6 +238,20 @@
 									<span class="mdc-button__label">Fetch Amazon Order History</span>
 								</button>
 							</div>
+
+							<p class="mdc-typography--body1" id="amazon_fetch_error" style="display: none;">
+								<strong>Error encountered downloading your order history:</strong><br /><br />
+								<span id="amazon_error_text"></span><br /><br />
+								<em>Please check your network connection and try again. If this problem persists, please contact the study staff for assistance and guidance.</em>
+								<br />
+								<br />
+								<button class="mdc-button mdc-button--touch mdc-button--raised" id="button_amazon_restart">
+									<span class="mdc-button__ripple"></span>
+									<span class="mdc-button__touch"></span>
+									<span class="mdc-button__focus-ring"></span>
+									<span class="mdc-button__label">Try Again</span>
+								</button>
+							</p>
 
 							<iframe id="background_fetch_frame_amazon" style="display: block; height: 2px; width: 100%; opacity: 0.0; border: thin solid blue;"></iframe>
 						</div>
