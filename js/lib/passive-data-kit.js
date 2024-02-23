@@ -131,68 +131,99 @@ const pdkFunction = function () {
         .objectStore('dataPoints')
         .index('transmitted')
 
-      const request = index.getAll(0)
+      const countRequest = index.count(0)
 
-      request.onsuccess = function () {
-        const pendingItems = request.result
+      countRequest.onsuccess = function () {
+        console.log('[PDK] Remaining data points: ' + countRequest.result)
 
-        if (pendingItems.length === 0) {
-          if (pdk.uploadCompleteCallback !== null) {
-            pdk.uploadCompleteCallback() // Finished
-          }
+        const request = index.getAll(0, 64)
 
-          pdk.currentlyUploading = false
+        request.onsuccess = function () {
+          const pendingItems = request.result
 
-          pdk.uploadCompleteCallback = null
-          pdk.uploadProgressCallback = null
-        } else {
-          const toTransmit = []
-          const xmitBundle = []
+          if (pendingItems.length === 0) {
+            if (pdk.uploadCompleteCallback !== null) {
+              pdk.uploadCompleteCallback() // Finished
+            }
 
-          const pendingRemaining = pendingItems.length
+            pdk.currentlyUploading = false
 
-          console.log('[PDK] Remaining data points: ' + pendingRemaining)
+            pdk.uploadCompleteCallback = null
+            pdk.uploadProgressCallback = null
+          } else {
+            const toTransmit = []
+            const xmitBundle = []
 
-          if (pdk.uploadProgressCallback !== undefined && pdk.uploadProgressCallback !== null) {
-            pdk.uploadProgressCallback(pendingRemaining)
-          }
+            const pendingRemaining = pendingItems.length
 
-          let bundleLength = 0
+            console.log('[PDK] Remaining data points (this bundle): ' + pendingRemaining)
 
-          for (let i = 0; i < pendingRemaining && bundleLength < (128 * 1024); i++) {
-            const pendingItem = pendingItems[i]
+            if (pdk.uploadProgressCallback !== undefined && pdk.uploadProgressCallback !== null) {
+              pdk.uploadProgressCallback(pendingRemaining)
+            }
 
-            pendingItem.transmitted = new Date().getTime()
+            let bundleLength = 0
 
-            pendingItem.dataPoint.date = pendingItem.date
-            pendingItem.dataPoint.generatorId = pendingItem.generatorId
+            for (let i = 0; i < pendingRemaining && bundleLength < (128 * 1024); i++) {
+              const pendingItem = pendingItems[i]
 
-            toTransmit.push(pendingItem)
-            xmitBundle.push(pendingItem.dataPoint)
+              pendingItem.transmitted = new Date().getTime()
 
-            const bundleString = JSON.stringify(pendingItem.dataPoint)
+              pendingItem.dataPoint.date = pendingItem.date
+              pendingItem.dataPoint.generatorId = pendingItem.generatorId
 
-            bundleLength += bundleString.length
-          }
+              toTransmit.push(pendingItem)
+              xmitBundle.push(pendingItem.dataPoint)
 
-          const status = {
-            pending_points: pendingRemaining,
-            generatorId: 'pdk-system-status'
-          }
+              const bundleString = JSON.stringify(pendingItem.dataPoint)
 
-          chrome.system.cpu.getInfo(function (cpuInfo) {
-            status['cpu-info'] = cpuInfo
+              bundleLength += bundleString.length
+            }
 
-            chrome.system.display.getInfo(function (displayUnitInfo) {
-              status['display-info'] = displayUnitInfo
+            const status = {
+              pending_points: pendingRemaining,
+              generatorId: 'pdk-system-status'
+            }
 
-              chrome.system.memory.getInfo(function (memoryInfo) {
-                status['memory-info'] = memoryInfo
+            chrome.system.cpu.getInfo(function (cpuInfo) {
+              status['cpu-info'] = cpuInfo
 
-                if (chrome.system.storage !== undefined) {
-                  chrome.system.storage.getInfo(function (storageUnitInfo) {
-                    status['storage-info'] = storageUnitInfo
+              chrome.system.display.getInfo(function (displayUnitInfo) {
+                status['display-info'] = displayUnitInfo
 
+                chrome.system.memory.getInfo(function (memoryInfo) {
+                  status['memory-info'] = memoryInfo
+
+                  if (chrome.system.storage !== undefined) {
+                    chrome.system.storage.getInfo(function (storageUnitInfo) {
+                      status['storage-info'] = storageUnitInfo
+
+                      xmitBundle.push(status)
+
+                      console.log('[PDK] Created bundle of size ' + bundleLength + '.')
+
+                      if (toTransmit.length === 0) {
+                        pdk.uploadCompleteCallback()
+
+                        pdk.currentlyUploading = false
+
+                        pdk.uploadCompleteCallback = null
+                        pdk.uploadProgressCallback = null
+                      } else {
+                        chrome.storage.local.get({ 'pdk-identifier': '' }, function (result) {
+                          if (result['pdk-identifier'] !== '') {
+                            pdk.uploadBundle(endpoint, serverKey, result['pdk-identifier'], xmitBundle, function () {
+                              pdk.updateDataPoints(toTransmit, function () {
+                                pdk.currentlyUploading = false
+
+                                pdk.uploadQueuedDataPoints(endpoint, serverKey, progressCallback, completeCallback)
+                              })
+                            })
+                          }
+                        })
+                      }
+                    })
+                  } else {
                     xmitBundle.push(status)
 
                     console.log('[PDK] Created bundle of size ' + bundleLength + '.')
@@ -217,41 +248,21 @@ const pdkFunction = function () {
                         }
                       })
                     }
-                  })
-                } else {
-                  xmitBundle.push(status)
-
-                  console.log('[PDK] Created bundle of size ' + bundleLength + '.')
-
-                  if (toTransmit.length === 0) {
-                    pdk.uploadCompleteCallback()
-
-                    pdk.currentlyUploading = false
-
-                    pdk.uploadCompleteCallback = null
-                    pdk.uploadProgressCallback = null
-                  } else {
-                    chrome.storage.local.get({ 'pdk-identifier': '' }, function (result) {
-                      if (result['pdk-identifier'] !== '') {
-                        pdk.uploadBundle(endpoint, serverKey, result['pdk-identifier'], xmitBundle, function () {
-                          pdk.updateDataPoints(toTransmit, function () {
-                            pdk.currentlyUploading = false
-
-                            pdk.uploadQueuedDataPoints(endpoint, serverKey, progressCallback, completeCallback)
-                          })
-                        })
-                      }
-                    })
                   }
-                }
+                })
               })
             })
-          })
+          }
+        }
+
+        request.onerror = function (event) {
+          console.log('[PDK] PDK database error')
+          console.log(event)
         }
       }
 
-      request.onerror = function (event) {
-        console.log('[PDK] PDK database error')
+      countRequest.onerror = function (event) {
+        console.log('[PDK] PDK database error retrieving record count')
         console.log(event)
       }
     })

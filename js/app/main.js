@@ -220,7 +220,7 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
                         completed = 0
                       }
 
-                      $('#upload-data-dialog-message').html('<em>Do not close this window until the upload is complete.</em>')
+                      $('#upload-data-dialog-message').html('<em>Do not close this window until the upload is complete.</em><br /><br />You may minimize this window and use your computer for other tasks while the upload is in progress.')
                       $('#upload-data-dialog-message').show()
 
                       uploadProgress.determinate = true
@@ -242,7 +242,7 @@ requirejs(['material', 'moment', 'pdk', 'jquery'], function (mdc, moment, pdk) {
 
                     uploadProgress.progress = completed / initialPendingItems
 
-                    $('#upload-data-dialog-message').html('<em>Do not close this window until the upload is complete.</em>')
+                    $('#upload-data-dialog-message').html('<em>Do not close this window until the upload is complete.</em><br /><br />You may minimize this window and use your computer for other tasks while the upload is in progress.')
                     $('#upload-data-dialog-message').show()
                   }, function () {
                     uploadDialog.close()
